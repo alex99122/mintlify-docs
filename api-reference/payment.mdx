@@ -1,0 +1,87 @@
+---
+title: "Payment"
+description: "Endpoints for creating payment invoices with various payment providers"
+---
+
+## Create Payment
+
+<Card title="POST /paiement/:provider" icon="credit-card">
+  Creates a payment invoice for purchasing items or adding balance using the specified payment provider.
+</Card>
+
+```
+POST /paiement/{provider}
+```
+
+**Authentication:** `connected`
+
+**Path Parameters**
+
+<ParamField path="provider" type="string" required>
+  The payment provider to use (e.g., `"stripe"`, `"paypal"`, etc.).
+</ParamField>
+
+**Body Parameters**
+
+<ParamField body="type" type="string" required>
+  Payment type: `"balance"` for adding funds, or `"items"` for purchasing specific items.
+</ParamField>
+
+<ParamField body="amount" type="integer">
+  Amount in cents (required when `type` is `"balance"`).
+</ParamField>
+
+<ParamField body="items" type="array">
+  Array of item details (required when `type` is `"items"`).
+</ParamField>
+
+<ParamField body="payment_method_id" type="string">
+  Specific payment method identifier (provider-dependent).
+</ParamField>
+
+### Payment Flow
+
+1. The server validates the user and request parameters
+2. Generates a unique transaction UUID
+3. For `"balance"` type: prepares a balance top-up payment
+4. For `"items"` type: validates items availability and prepares item purchase
+5. Records the transaction in the database
+6. Creates an invoice with the payment provider
+
+**Response — Redirect Payment**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "url": "https://checkout.stripe.com/pay/..."
+  }
+}
+```
+
+<ResponseField name="data.url" type="string">
+  Redirect URL to the payment provider's checkout page.
+</ResponseField>
+
+**Response — Direct Payment**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "message": "Payment processed successfully"
+  }
+}
+```
+
+**Errors**
+
+| Status | Message |
+|--------|---------|
+| `error` | Provider is required |
+| `error` | Invalid user |
+| `error` | Invalid provider |
+| `error` | Invalid request parameters |
+| `error` | No items found |
+| `error` | Failed to save transaction |
+| `error` | Failed to process payment |

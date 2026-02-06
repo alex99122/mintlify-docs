@@ -1,0 +1,158 @@
+---
+title: "Deposit"
+description: "Deposit Steam items onto the Mannco.store platform for selling"
+---
+
+## Get deposit items
+
+```
+GET /deposit/{game}
+GET /deposit/{game}/{userid}
+```
+
+**Permission:** Connected
+
+<ParamField path="game" type="string" required>
+  Game App ID (`440`, `730`, `570`, `252490`)
+</ParamField>
+
+<ParamField path="userid" type="string">
+  SteamID of user (for admin/alternate view)
+</ParamField>
+
+Fetches the user's Steam inventory for the specified game and returns depositable items with pricing information. Items are grouped by type to reduce duplicates.
+
+### Supported games
+
+| Game | App ID | Grouping |
+|------|--------|----------|
+| TF2 | `440` | By item_id + sheen + spell + killstreaker |
+| CS2 | `730` | By item_id + wear + pattern |
+| Dota 2 | `570` | By item_id + type + quality |
+| Rust | `252490` | By item_id + type + category |
+
+### TF2 deposit item type
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `assetid` | string | Steam asset ID(s), semicolon-separated if grouped |
+| `market_hash_name` | string | Steam market hash name |
+| `unusual` | string | Unusual effect name |
+| `craft` | string | `"uncraftable "` if uncraftable, empty otherwise |
+| `spell` | string | Semicolon-separated spell names |
+| `sheen` | string | Killstreak sheen |
+| `killstreaker` | string | Killstreaker effect |
+| `quality` | string | Item quality |
+| `class` | string | TF2 class(es) |
+| `image` | string | Item image URL |
+| `url` | string | Mannco.store item URL slug |
+| `item_id` | string | Mannco.store item definition ID |
+| `depositkey` | string | Deposit authorization hash |
+| `count` | integer | Number of identical items |
+| `disabled` | string | Reason if deposit is blocked (`"blacklist"`, `"highstock"`) |
+| `nb_high_stock` | integer | Current stock count on site |
+| `high_stock_limit` | integer | Maximum stock threshold |
+
+### CS2 deposit item type
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `assetid` | string | Steam asset ID(s) |
+| `market_hash_name` | string | Market hash name |
+| `type` | string | Item type |
+| `quality` | string | Item quality |
+| `rarity` | string | Item rarity |
+| `wear` | string | Float wear value |
+| `pattern` | string | Pattern template ID |
+| `image` | string | Item image URL |
+| `stickers` | array | Array of sticker objects (`{url, name}`) |
+| `keychains` | array | Array of keychain objects (`{url, name}`) |
+| `depositkey` | string | Deposit authorization hash |
+| `count` | integer | Number of identical items |
+
+<Warning>
+  Items on the blacklist or exceeding the high stock threshold cannot be deposited. The `disabled` field indicates the reason.
+</Warning>
+
+---
+
+## Get bot list
+
+```
+GET /deposit/botList/{game}
+```
+
+**Permission:** Public
+
+<ParamField path="game" type="string" required>
+  Game App ID
+</ParamField>
+
+Returns the list of trade bots available for the specified game, sorted by available inventory space (most space first). Each bot includes a deposit URL.
+
+### Bot type
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | integer | Bot ID |
+| `steamid` | string | Bot Steam ID |
+| `name` | string | Bot display name |
+| `disabled` | integer | Whether bot is disabled |
+| `url` | string | Deposit URL |
+| `TF2` | integer | Free TF2 inventory slots |
+| `CSGO` | integer | Free CS2 inventory slots |
+| `DOTA` | integer | Free Dota 2 inventory slots |
+| `RUST` | integer | Free Rust inventory slots |
+
+---
+
+## Get trade status
+
+```
+GET /deposit/tradeStatus/{tradeid}
+```
+
+**Permission:** Connected
+
+<ParamField path="tradeid" type="string" required>
+  Trade ID
+</ParamField>
+
+Returns the current status of a deposit trade.
+
+---
+
+## Set price for upcoming trade
+
+```
+POST /deposit/setPriceForUpcomingTrade
+```
+
+**Permission:** Connected
+
+Sets custom listing prices for items that are about to be deposited. The price mapping is stored and applied when the trade completes.
+
+### Request body
+
+<ParamField body="value" type="object" required>
+  JSON object mapping asset IDs to prices (in cents)
+</ParamField>
+
+```json
+{
+  "value": {
+    "1234567890": 15000,
+    "9876543210": 25000
+  }
+}
+```
+
+### Response
+
+```json
+{
+  "id": 42
+}
+```
+
+Returns the ID of the stored price record.

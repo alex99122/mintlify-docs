@@ -1,0 +1,505 @@
+---
+title: "Giveaways"
+description: "Endpoints for browsing, creating, joining, and managing giveaways (raffles)"
+---
+
+## List Active Giveaways
+
+<Card title="GET /giveaways" icon="gift">
+  Retrieves all currently active public giveaways.
+</Card>
+
+```
+GET /giveaways
+```
+
+**Authentication:** None
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "list": [
+      {
+        "id": 1,
+        "url": "giveaway-abc123",
+        "name": "Unusual Hat Giveaway",
+        "creator": "76561198000000000",
+        "creator_name": "PlayerName",
+        "creator_image": "https://avatars.steamstatic.com/...",
+        "max_entries": 500,
+        "current_entries": 150,
+        "end_time": 1706832000,
+        "items": [],
+        "total_value": 50000
+      }
+    ]
+  }
+}
+```
+
+---
+
+## Giveaway History
+
+<Card title="GET /giveaways/history" icon="clock-rotate-left">
+  Retrieves past (ended) public giveaways.
+</Card>
+
+```
+GET /giveaways/history
+```
+
+**Authentication:** None
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "list": [
+      {
+        "id": 1,
+        "url": "giveaway-abc123",
+        "name": "Past Giveaway",
+        "winner": "76561198111111111",
+        "winner_name": "WinnerName"
+      }
+    ]
+  }
+}
+```
+
+---
+
+## My Active Giveaways
+
+<Card title="GET /giveaways/my" icon="user">
+  Retrieves active giveaways created by the current user.
+</Card>
+
+```
+GET /giveaways/my
+```
+
+**Authentication:** `connected`
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "list": []
+  }
+}
+```
+
+---
+
+## My Giveaway History
+
+<Card title="GET /giveaways/history/my" icon="user-clock">
+  Retrieves past giveaways created by the current user.
+</Card>
+
+```
+GET /giveaways/history/my
+```
+
+**Authentication:** `connected`
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "list": []
+  }
+}
+```
+
+---
+
+## Get Giveaway Details
+
+<Card title="GET /giveaways/details/:url" icon="circle-info">
+  Retrieves detailed information about a specific giveaway, including participants and items.
+</Card>
+
+```
+GET /giveaways/details/{url}
+```
+
+**Authentication:** None
+
+**Path Parameters**
+
+<ParamField path="url" type="string" required>
+  The unique URL identifier of the giveaway.
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "details": {
+      "id": 1,
+      "url": "giveaway-abc123",
+      "name": "Unusual Hat Giveaway",
+      "description": "Win an amazing unusual hat!",
+      "description_entered": "Thanks for entering!",
+      "creator": "76561198000000000",
+      "max_entries": 500,
+      "current_entries": 150,
+      "private": 0,
+      "end_time": 1706832000,
+      "items": [
+        {
+          "id": 1,
+          "name": "Unusual Hat",
+          "image": "https://...",
+          "value": 50000
+        }
+      ],
+      "participants": [
+        {
+          "steamId": "76561198111111111",
+          "name": "ParticipantName",
+          "image": "https://..."
+        }
+      ]
+    }
+  }
+}
+```
+
+---
+
+## Get Giveaway Comments
+
+<Card title="GET /giveaways/comments/:url" icon="comments">
+  Retrieves paginated comments for a specific giveaway.
+</Card>
+
+```
+GET /giveaways/comments/{url}
+```
+
+**Authentication:** None
+
+**Path Parameters**
+
+<ParamField path="url" type="string" required>
+  The unique URL identifier of the giveaway.
+</ParamField>
+
+**Query Parameters**
+
+<ParamField query="page" type="integer" default="0">
+  Page number (0-indexed). 10 comments per page.
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "comments": [
+      {
+        "id": 1,
+        "user": "76561198000000000",
+        "user_name": "PlayerName",
+        "user_image": "https://...",
+        "content": "Thanks for the giveaway!",
+        "timestamp": 1706745600
+      }
+    ],
+    "count": 25
+  }
+}
+```
+
+---
+
+## Get Joined List
+
+<Card title="GET /giveaways/joinedList" icon="list">
+  Retrieves a list of giveaways the current user has joined.
+</Card>
+
+```
+GET /giveaways/joinedList
+```
+
+**Authentication:** `connected`
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "list": [
+      {
+        "raffle_id": 1,
+        "url": "giveaway-abc123"
+      }
+    ]
+  }
+}
+```
+
+---
+
+## Check If User Joined
+
+<Card title="GET /giveaways/isIn/:url" icon="circle-question">
+  Checks if the current user has joined a specific giveaway.
+</Card>
+
+```
+GET /giveaways/isIn/{url}
+```
+
+**Authentication:** `connected`
+
+**Path Parameters**
+
+<ParamField path="url" type="string" required>
+  The unique URL identifier of the giveaway.
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "isIn": true
+  }
+}
+```
+
+---
+
+## Join Giveaway
+
+<Card title="POST /giveaways/join/:url" icon="right-to-bracket">
+  Joins a specific giveaway. Validates entry limits and activity status.
+</Card>
+
+```
+POST /giveaways/join/{url}
+```
+
+**Authentication:** `connected`
+
+**Path Parameters**
+
+<ParamField path="url" type="string" required>
+  The unique URL identifier of the giveaway.
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "message": "Successfully joined the raffle"
+  }
+}
+```
+
+**Errors**
+
+| Status | Message |
+|--------|---------|
+| `error` | Cannot join this raffle |
+| `error` | Raffle url is required |
+
+---
+
+## Leave Giveaway
+
+<Card title="POST /giveaways/leave/:url" icon="right-from-bracket">
+  Leaves a specific giveaway the user has previously joined.
+</Card>
+
+```
+POST /giveaways/leave/{url}
+```
+
+**Authentication:** `connected`
+
+**Path Parameters**
+
+<ParamField path="url" type="string" required>
+  The unique URL identifier of the giveaway.
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "message": "Successfully left the raffle"
+  }
+}
+```
+
+---
+
+## Add Comment
+
+<Card title="POST /giveaways/comment" icon="comment">
+  Adds a comment to a giveaway. Rate limited to one comment per 10 minutes.
+</Card>
+
+```
+POST /giveaways/comment
+```
+
+**Authentication:** `connected`
+
+**Body Parameters**
+
+<ParamField body="url" type="string" required>
+  The unique URL identifier of the giveaway.
+</ParamField>
+
+<ParamField body="comment" type="string" required>
+  The comment text (max 300 characters).
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "message": "Comment successfully added"
+  }
+}
+```
+
+**Errors**
+
+| Status | Message |
+|--------|---------|
+| `error` | Comment cannot be empty |
+| `error` | Comment is too long (maximum 300 characters) |
+| `error` | You can only post one comment every 10 minutes |
+
+---
+
+## Delete Comment (Admin)
+
+<Card title="POST /giveaways/deleteComment/:id" icon="trash">
+  Deletes a comment from a giveaway. Admin only.
+</Card>
+
+```
+POST /giveaways/deleteComment/{id}
+```
+
+**Authentication:** `connected`, `admin`
+
+**Path Parameters**
+
+<ParamField path="id" type="integer" required>
+  The comment ID to delete.
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "message": "Comment successfully deleted"
+  }
+}
+```
+
+---
+
+## Create Giveaway
+
+<Card title="POST /giveaways/create" icon="plus">
+  Creates a new giveaway. Rate limited to 1 giveaway per hour. Transfers selected items from the user's inventory to the giveaway pool.
+</Card>
+
+```
+POST /giveaways/create
+```
+
+**Authentication:** `connected`
+
+**Body Parameters**
+
+<ParamField body="raffle_name" type="string" required>
+  Name of the giveaway.
+</ParamField>
+
+<ParamField body="max_entries" type="integer" required>
+  Maximum number of participants. Minimum 100 for public, minimum 2 for private giveaways.
+</ParamField>
+
+<ParamField body="private" type="string" required>
+  `"0"` for public, `"1"` for private.
+</ParamField>
+
+<ParamField body="description" type="string" required>
+  Description shown before entering the giveaway.
+</ParamField>
+
+<ParamField body="description_entered" type="string" required>
+  Description shown after entering the giveaway.
+</ParamField>
+
+<ParamField body="time" type="string" required>
+  Duration of the giveaway.
+</ParamField>
+
+<ParamField body="items" type="array" required>
+  Array of item IDs from the user's inventory to include (max 50 items).
+</ParamField>
+
+<ParamField body="discord_required" type="boolean">
+  Whether Discord verification is required to join.
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "message": "Giveaway created successfully",
+    "url": "giveaway-abc123"
+  }
+}
+```
+
+**Errors**
+
+| Status | Message |
+|--------|---------|
+| `error` | Rate limit exceeded. Maximum 1 giveaway per hour |
+| `error` | Invalid parameters |
+| `error` | Invalid time duration |
+| `error` | Items are required |
+| `error` | 2FA required |
+| `error` | Items not found or too many items (max 50) |
+| `error` | Minimum 100 entries required for public giveaways |
+| `error` | Minimum 2 entries required for private giveaways |

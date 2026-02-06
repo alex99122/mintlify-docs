@@ -1,0 +1,80 @@
+---
+title: "Trades"
+description: "Track active and historical Steam trade offers"
+---
+
+## Get active trades
+
+```
+GET /trades/active
+GET /trades/active/{userid}
+```
+
+**Permission:** Connected (admin for `{userid}` variant)
+
+<ParamField path="userid" type="string">
+  SteamID of user (admin only)
+</ParamField>
+
+Returns all active (non-completed) trades for the user. Active trades are those where:
+- Status is not `3` (completed) and items have been sent, OR
+- Status is `0` (pending) and items haven't been sent yet
+
+### Trade type
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | integer | Trade ID |
+| `items_received` | string | Comma-separated received asset IDs |
+| `items_send` | string | Comma-separated sent asset IDs |
+| `status` | integer | Trade status (see below) |
+| `user` | string | User SteamID |
+| `bot` | string | Bot SteamID |
+| `code` | string | Trade offer confirmation code |
+| `lasterror` | string | Last error message (if any) |
+| `offerid` | string | Steam trade offer ID |
+| `timestamp` | integer | Unix timestamp of trade creation |
+
+### Trade statuses
+
+| Status | Description |
+|--------|-------------|
+| `0` | Pending — waiting for user action |
+| `3` | Completed — items transferred |
+| `-1` | Failed — trade could not be completed |
+| `-11` | Hidden — removed from user view |
+| `-12` | Reverted — items returned by admin |
+
+---
+
+## Get all trades
+
+```
+GET /trades/all
+GET /trades/all/{userid}
+```
+
+**Permission:** Connected (admin for `{userid}` variant)
+
+<ParamField path="userid" type="string">
+  SteamID of user (admin only)
+</ParamField>
+
+Returns the last 500 trades for the user (excluding hidden trades with status `-11`). Includes both active and completed trades.
+
+---
+
+## Resend trade
+
+```
+GET /trade/resend
+GET /trade/resend/{userid}
+```
+
+**Permission:** Connected (moderator for `{userid}` variant)
+
+<ParamField path="userid" type="string">
+  SteamID of user (moderator only)
+</ParamField>
+
+Resends a failed or pending trade offer to the user's Steam account. Useful when the original trade offer expired or was cancelled.

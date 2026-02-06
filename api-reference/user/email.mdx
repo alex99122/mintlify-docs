@@ -1,0 +1,199 @@
+---
+title: "Email Management"
+description: "Endpoints for email validation and email change workflows"
+---
+
+## Email Validation Flow
+
+Email validation is required before a user can fully log in. The flow consists of two steps:
+
+<Steps>
+  <Step title="Request Validation">
+    Send a validation code to the user's email address.
+  </Step>
+  <Step title="Validate Code">
+    Submit the code received by email to complete validation and get the JWT token.
+  </Step>
+</Steps>
+
+---
+
+## Request Email Validation
+
+<Card title="POST /user/email/validation/request" icon="envelope">
+  Sends a 6-digit validation code to the provided email address. This is used during initial account setup when email hasn't been validated yet.
+</Card>
+
+```
+POST /user/email/validation/request
+```
+
+**Authentication:** None (uses `hashUser` for verification)
+
+**Body Parameters**
+
+<ParamField body="email" type="string" required>
+  The email address to validate.
+</ParamField>
+
+<ParamField body="user" type="string">
+  The Steam ID of the user. Defaults to the connected user if not provided.
+</ParamField>
+
+<ParamField body="hashUser" type="string" required>
+  SHA-256 hash of the user's Steam ID + login key. Obtained from the login error response with code `0x00000001`.
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": "Email validation request created successfully"
+}
+```
+
+**Errors**
+
+| Status | Message |
+|--------|---------|
+| `error` | Invalid hashUser |
+| `error` | Email already validated |
+| `error` | Failed to create email validation request! Need to wait 5 mins! |
+| `error` | Invalid email format |
+| `error` | Email parameter is required |
+
+<Note>
+  There is a 5-minute cooldown between validation requests.
+</Note>
+
+---
+
+## Validate Email
+
+<Card title="POST /user/email/validation/validate" icon="circle-check">
+  Validates the email using the code sent in the previous step. On success, returns the JWT token for authentication.
+</Card>
+
+```
+POST /user/email/validation/validate
+```
+
+**Authentication:** None (uses `hashUser` for verification)
+
+**Body Parameters**
+
+<ParamField body="code" type="string" required>
+  The 6-digit validation code received by email. Can be a string or an array of individual digits.
+</ParamField>
+
+<ParamField body="user" type="string">
+  The Steam ID of the user. Defaults to the connected user if not provided.
+</ParamField>
+
+<ParamField body="hashUser" type="string" required>
+  SHA-256 hash of the user's Steam ID + login key.
+</ParamField>
+
+<ParamField body="jwt" type="string" required>
+  The encrypted JWT token received from the login response (code `0x00000001`).
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "message": "Email validation success",
+    "jwt": "eyJhbGciOiJI..."
+  }
+}
+```
+
+<ResponseField name="data.jwt" type="string">
+  The decrypted JWT token to use for subsequent authenticated requests.
+</ResponseField>
+
+---
+
+## Email Change Flow
+
+Changing an email requires 2FA to be enabled and follows a similar request/validate pattern.
+
+---
+
+## Request Email Change
+
+<Card title="POST /user/email/change/request" icon="pen-to-square">
+  Sends a validation code to the new email address. Requires 2FA authentication.
+</Card>
+
+```
+POST /user/email/change/request
+```
+
+**Authentication:** `connected`, `2fa`
+
+**Body Parameters**
+
+<ParamField body="email" type="string" required>
+  The new email address to change to.
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": "Email change request created successfully"
+}
+```
+
+**Errors**
+
+| Status | Message |
+|--------|---------|
+| `error` | Invalid email format |
+| `error` | Failed to create email change request! Need to wait 5 mins! |
+| `error` | Email parameter is required |
+
+<Note>
+  There is a 5-minute cooldown between email change requests.
+</Note>
+
+---
+
+## Validate Email Change
+
+<Card title="POST /user/email/change/validate" icon="check">
+  Validates the email change request using the code sent to the new email.
+</Card>
+
+```
+POST /user/email/change/validate
+```
+
+**Authentication:** `connected`, `2fa`
+
+**Body Parameters**
+
+<ParamField body="code" type="string" required>
+  The 6-digit validation code received at the new email address. Can be a string or an array of individual digits.
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": "Email change validation success"
+}
+```
+
+**Errors**
+
+| Status | Message |
+|--------|---------|
+| `error` | Can't validate email change |
+| `error` | code parameter is required |

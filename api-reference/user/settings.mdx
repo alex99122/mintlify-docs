@@ -1,0 +1,182 @@
+---
+title: "Settings"
+description: "Endpoints for managing user profile settings, trade URL, privacy, and notifications"
+---
+
+## Set Trade URL
+
+<Card title="POST /user/setTradeUrl" icon="link">
+  Updates the user's Steam trade URL. The URL is validated against the user's Steam ID to ensure it belongs to them.
+</Card>
+
+```
+POST /user/setTradeUrl
+```
+
+**Authentication:** `connected`
+
+**Body Parameters**
+
+<ParamField body="tradeurl" type="string" required>
+  Full Steam trade URL. Must start with `https://steamcommunity.com` and contain the correct `partner` parameter matching the user's Steam ID.
+</ParamField>
+
+**Validation Rules**
+- Must be a valid URL format
+- Must start with `https://steamcommunity.com`
+- The `partner` query parameter must match the user's Steam3 ID
+- Must contain a valid `token` query parameter
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": "Trade URL updated successfully"
+}
+```
+
+**Errors**
+
+| Status | Message |
+|--------|---------|
+| `error` | Missing or empty tradeurl parameter |
+| `error` | Invalid trade URL format |
+| `error` | Invalid Steam ID |
+| `error` | Failed to update trade URL |
+
+---
+
+## Update Short URL
+
+<Card title="POST /user/updateShortUrl" icon="scissors">
+  Updates the user's custom short profile URL. Must be unique across all users.
+</Card>
+
+```
+POST /user/updateShortUrl
+```
+
+**Authentication:** `connected`
+
+**Body Parameters**
+
+<ParamField body="shorturl" type="string" required>
+  The desired short URL. 1–12 characters, lowercase letters and numbers only.
+</ParamField>
+
+**Validation Rules**
+- 1 to 12 characters
+- Only lowercase letters (`a-z`) and numbers (`0-9`)
+- Must be unique (not already taken by another user)
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": "Short URL updated successfully"
+}
+```
+
+**Errors**
+
+| Status | Message |
+|--------|---------|
+| `error` | Missing or empty shorturl parameter |
+| `error` | Invalid short URL format. Must be 1-12 characters, only lowercase letters and numbers allowed |
+| `error` | Short URL already exists for another user |
+
+---
+
+## Set Privacy Setting
+
+<Card title="POST /user/setPrivacySetting" icon="eye-slash">
+  Updates the user's profile privacy setting (public or private).
+</Card>
+
+```
+POST /user/setPrivacySetting
+```
+
+**Authentication:** `connected`
+
+**Body Parameters**
+
+<ParamField body="privacy" type="string" required>
+  `"1"` for private, `"0"` for public.
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": "updated"
+}
+```
+
+---
+
+## Set Mail Notification Email
+
+<Card title="POST /user/setMailNotification" icon="at">
+  Sets or updates the email address used for notifications.
+</Card>
+
+```
+POST /user/setMailNotification
+```
+
+**Authentication:** `connected`
+
+**Body Parameters**
+
+<ParamField body="email" type="string" required>
+  A valid email address to receive notifications.
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": "updated"
+}
+```
+
+**Errors**
+
+| Status | Message |
+|--------|---------|
+| `error` | missing fields |
+| `error` | invalid email |
+
+---
+
+## Set Mail Notification Status
+
+<Card title="POST /user/setMailNotificationStatus" icon="toggle-on">
+  Enables or disables email notifications.
+</Card>
+
+```
+POST /user/setMailNotificationStatus
+```
+
+**Authentication:** `connected`
+
+**Body Parameters**
+
+<ParamField body="notification" type="string" required>
+  `"1"` to enable, `"0"` to disable.
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": "updated"
+}
+```

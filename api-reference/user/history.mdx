@@ -1,0 +1,441 @@
+---
+title: "History"
+description: "Endpoints for retrieving user transaction, balance, purchase, sales, cashout, and buy/sell history"
+---
+
+## Get Balance History
+
+<Card title="GET /user/getBalanceHistory" icon="clock-rotate-left">
+  Retrieves the user's balance change history with pagination. Excludes cashout-related entries.
+</Card>
+
+```
+GET /user/getBalanceHistory
+GET /user/getBalanceHistory/{userid}   (admin)
+```
+
+**Authentication:** `connected` (admin for other users)
+
+**Query Parameters**
+
+<ParamField query="page" type="integer" default="0">
+  Page number (0-indexed).
+</ParamField>
+
+<ParamField query="limit" type="integer" default="10">
+  Number of results per page (max 50).
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "values": [
+      {
+        "id": 1,
+        "user": "76561198000000000",
+        "value": 5000,
+        "type": "Item Sale",
+        "state": 0,
+        "time": 1706745600
+      }
+    ],
+    "count": 150
+  }
+}
+```
+
+<Note>
+  The `count` field is only returned on the first page (`page=0`).
+</Note>
+
+---
+
+## Get Purchase History
+
+<Card title="GET /user/getPurchaseHistory" icon="bag-shopping">
+  Retrieves the user's item purchase history with pagination.
+</Card>
+
+```
+GET /user/getPurchaseHistory
+GET /user/getPurchaseHistory/{userid}   (admin)
+```
+
+**Authentication:** `connected` (admin for other users)
+
+**Query Parameters**
+
+<ParamField query="page" type="integer" default="0">
+  Page number (0-indexed).
+</ParamField>
+
+<ParamField query="limit" type="integer" default="10">
+  Number of results per page (max 50).
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "values": [
+      {
+        "id": 1,
+        "user": "76561198000000000",
+        "value": 2500,
+        "type": "Item Purchase",
+        "state": 0,
+        "time": 1706745600
+      }
+    ],
+    "count": 75
+  }
+}
+```
+
+---
+
+## Get Sales History
+
+<Card title="GET /user/getSalesHistory" icon="chart-line">
+  Retrieves the user's buy/sale history with date filtering and search.
+</Card>
+
+```
+GET /user/getSalesHistory
+GET /user/getSalesHistory/{userid}   (admin)
+```
+
+**Authentication:** `connected` (admin for other users)
+
+**Query Parameters**
+
+<ParamField query="page" type="integer" default="0">
+  Page number (0-indexed).
+</ParamField>
+
+<ParamField query="perpage" type="integer" default="10">
+  Number of results per page (max 50).
+</ParamField>
+
+<ParamField query="range" type="string" default="1W">
+  Date range filter. Values: `1W` (1 week), `1M` (1 month), `1Y` (1 year), `All` (no filter).
+</ParamField>
+
+<ParamField query="search" type="string">
+  Search filter (minimum 3 characters).
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "values": [
+      {
+        "id": 1,
+        "item_name": "Unusual Hat",
+        "value": 5000,
+        "type": "sale",
+        "time": 1706745600
+      }
+    ],
+    "count": 42
+  }
+}
+```
+
+---
+
+## Get Cashout History
+
+<Card title="GET /user/getCashoutHistory" icon="money-bill-transfer">
+  Retrieves the user's cashout history with pagination.
+</Card>
+
+```
+GET /user/getCashoutHistory
+GET /user/getCashoutHistory/{userid}   (admin)
+```
+
+**Authentication:** `connected` (admin for other users)
+
+**Query Parameters**
+
+<ParamField query="page" type="integer" default="0">
+  Page number (0-indexed).
+</ParamField>
+
+<ParamField query="limit" type="integer" default="10">
+  Number of results per page (max 50).
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "values": [
+      {
+        "id": 1,
+        "user": "76561198000000000",
+        "amount": 10000,
+        "type": "PayPal",
+        "status": "completed",
+        "time": 1706745600
+      }
+    ],
+    "count": 5
+  }
+}
+```
+
+---
+
+## Get Transaction History
+
+<Card title="GET /user/getTransactionHistory" icon="receipt">
+  Retrieves the user's transaction history with pagination and search.
+</Card>
+
+```
+GET /user/getTransactionHistory
+GET /user/getTransactionHistory/{userid}   (admin)
+```
+
+**Authentication:** `connected` (admin for other users)
+
+**Query Parameters**
+
+<ParamField query="page" type="integer" default="0">
+  Page number (0-indexed).
+</ParamField>
+
+<ParamField query="limit" type="integer" default="10">
+  Number of results per page (max 50).
+</ParamField>
+
+<ParamField query="search" type="string">
+  Search filter for transaction items.
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "values": [
+      {
+        "id": 1,
+        "item_name": "Unusual Hat",
+        "value": 5000,
+        "type": "buy",
+        "time": 1706745600
+      }
+    ],
+    "count": 120
+  }
+}
+```
+
+---
+
+## Get Transaction Details
+
+<Card title="GET /user/getTransactionDetails" icon="magnifying-glass">
+  Retrieves detailed information about a specific transaction.
+</Card>
+
+```
+GET /user/getTransactionDetails
+GET /user/getTransactionDetails/{userid}   (admin)
+```
+
+**Authentication:** `connected` (admin for other users)
+
+**Query Parameters**
+
+<ParamField query="transactionId" type="string" required>
+  The transaction ID to look up.
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "transaction": {
+      "id": "txn_abc123",
+      "items": [],
+      "totalPrice": 5000,
+      "status": "completed",
+      "time": 1706745600
+    }
+  }
+}
+```
+
+**Errors**
+
+| Status | Message |
+|--------|---------|
+| `error` | transactionId parameter is required |
+| `error` | Transaction not found or access denied |
+
+---
+
+## Get User Buy Orders
+
+<Card title="GET /user/getBuyorder" icon="list-check">
+  Retrieves the user's active buy orders with pagination and search.
+</Card>
+
+```
+GET /user/getBuyorder
+GET /user/getBuyorder/{userid}   (admin)
+```
+
+**Authentication:** `connected` (admin for other users)
+
+**Query Parameters**
+
+<ParamField query="page" type="integer" default="0">
+  Page number (0-indexed).
+</ParamField>
+
+<ParamField query="count" type="integer" default="10">
+  Number of results per page (max 50, min 1).
+</ParamField>
+
+<ParamField query="search" type="string">
+  Search filter for items.
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "values": [
+      {
+        "id": 1,
+        "item_id": 5678,
+        "item_name": "Unusual Hat",
+        "amount": 5,
+        "value": 1500,
+        "user": "76561198000000000"
+      }
+    ],
+    "count": 10
+  }
+}
+```
+
+---
+
+## Support: Get All Incomes
+
+<Card title="GET /support/getAllIncomes" icon="arrow-down">
+  Retrieves the user's complete income history (used in support context).
+</Card>
+
+```
+GET /support/getAllIncomes
+```
+
+**Authentication:** `connected`
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "values": [
+      {
+        "id": 1,
+        "user": "76561198000000000",
+        "value": 5000,
+        "type": "Item Sale",
+        "time": 1706745600
+      }
+    ]
+  }
+}
+```
+
+---
+
+## Support: Get All Outcomes
+
+<Card title="GET /support/getAllOutcomes" icon="arrow-up">
+  Retrieves the user's complete outcome/expense history (used in support context).
+</Card>
+
+```
+GET /support/getAllOutcomes
+```
+
+**Authentication:** `connected`
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "values": [
+      {
+        "id": 1,
+        "user": "76561198000000000",
+        "value": 2000,
+        "type": "Item Purchase",
+        "time": 1706745600
+      }
+    ]
+  }
+}
+```
+
+---
+
+## Support: Get All Cashouts
+
+<Card title="GET /support/getAllCashouts" icon="money-bill-wave">
+  Retrieves the user's complete cashout history (used in support context).
+</Card>
+
+```
+GET /support/getAllCashouts
+```
+
+**Authentication:** `connected`
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "values": [
+      {
+        "id": 1,
+        "user": "76561198000000000",
+        "amount": 10000,
+        "type": "PayPal",
+        "status": "completed",
+        "time": 1706745600
+      }
+    ]
+  }
+}
+```

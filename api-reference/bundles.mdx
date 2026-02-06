@@ -1,0 +1,119 @@
+---
+title: "Bundles"
+description: "Endpoints for browsing and interacting with item bundles"
+---
+
+## Get All Bundles
+
+<Card title="GET /bundles/all" icon="boxes-stacked">
+  Retrieves all available bundles for a specific game, including item details and availability status.
+</Card>
+
+```
+GET /bundles/all
+```
+
+**Authentication:** None
+
+**Query Parameters**
+
+<ParamField query="game" type="integer" required>
+  The game ID to fetch bundles for.
+</ParamField>
+
+### Supported Games
+
+| Game ID | Game |
+|---------|------|
+| `440` | Team Fortress 2 |
+| `730` | Counter-Strike 2 |
+| `570` | Dota 2 |
+| `252490` | Rust |
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "bundles": [
+      {
+        "id": 1,
+        "name": "Starter Pack",
+        "game": 440,
+        "items": [
+          {
+            "id": 5678,
+            "name": "Unusual Hat",
+            "image": "https://...",
+            "value": 5000
+          }
+        ],
+        "total_value": 15000,
+        "bundle_price": 12000,
+        "available": true,
+        "addtocart": 42
+      }
+    ]
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | integer | Bundle unique identifier |
+| `name` | string | Bundle display name |
+| `game` | integer | Game ID |
+| `items` | array | Array of items included in the bundle |
+| `total_value` | integer | Sum of individual item values (cents) |
+| `bundle_price` | integer | Discounted bundle price (cents) |
+| `available` | boolean | Whether all items are currently available |
+| `addtocart` | integer | Number of times this bundle has been added to cart |
+
+**Errors**
+
+| Status | Message |
+|--------|---------|
+| `error` | Game is required |
+| `error` | Game not supported |
+
+---
+
+## Track Bundle Add to Cart
+
+<Card title="GET /bundles/add" icon="cart-plus">
+  Increments the "add to cart" counter for a specific bundle. Used for analytics tracking.
+</Card>
+
+```
+GET /bundles/add
+```
+
+**Authentication:** None
+
+**Query Parameters**
+
+<ParamField query="id" type="integer" required>
+  The bundle ID to track.
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "message": "Bundle addtocart incremented",
+    "bundleId": 1,
+    "rowsAffected": 1
+  }
+}
+```
+
+**Errors**
+
+| Status | Message |
+|--------|---------|
+| `error` | Missing required parameter: id |
+| `error` | Invalid bundle id |
+| `error` | Bundle not found |

@@ -1,0 +1,68 @@
+---
+title: "Cart"
+description: "Endpoints for managing the shopping cart and bulk item operations"
+---
+
+## Bulk Add Items to Cart
+
+<Card title="POST /cart/bulk/add" icon="cart-plus">
+  Retrieves a list of available items for bulk adding to cart, filtered by item type, seller, and excluded asset IDs.
+</Card>
+
+```
+POST /cart/bulk/add
+```
+
+**Authentication:** `connected`
+
+**Body Parameters**
+
+<ParamField body="itemId" type="integer" required>
+  The item type ID to add to cart.
+</ParamField>
+
+<ParamField body="count" type="integer" required>
+  Number of items to retrieve (must be a positive number).
+</ParamField>
+
+<ParamField body="excludeAssetIds" type="array">
+  Array of asset IDs to exclude from the results. Can also be a comma-separated string or JSON string.
+</ParamField>
+
+<ParamField body="sellerUserId" type="string">
+  Optional seller's Steam ID to filter items from a specific seller.
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "items": [
+      {
+        "id": 12345,
+        "assetId": "9876543210",
+        "item_id": 5678,
+        "name": "Unusual Hat",
+        "price": 5000,
+        "seller": "76561198000000000",
+        "image": "https://..."
+      }
+    ],
+    "count": 5
+  }
+}
+```
+
+**Errors**
+
+| Status | Message |
+|--------|---------|
+| `error` | Missing required parameters: itemId, count |
+| `error` | Invalid itemId parameter |
+| `error` | Invalid count parameter. Must be a positive number |
+
+<Note>
+  The endpoint automatically excludes items owned by the buyer (`buyerUserId`). If `sellerUserId` is provided, only items from that seller are returned.
+</Note>

@@ -1,0 +1,417 @@
+---
+title: "Support"
+description: "Endpoints for creating and managing support tickets, sending messages, and admin support operations"
+---
+
+## List Support Tickets
+
+<Card title="GET /support/list" icon="headset">
+  Retrieves a list of support tickets for the current user.
+</Card>
+
+```
+GET /support/list
+```
+
+**Authentication:** `connected`
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "list": [
+      {
+        "ticket": 1706745600,
+        "subject": "Item not received",
+        "topic": "trading",
+        "concern": "deposit",
+        "status": 1,
+        "last_message": 1706746600,
+        "created": 1706745600
+      }
+    ]
+  }
+}
+```
+
+---
+
+## Get Ticket Messages
+
+<Card title="GET /support/messages/:ticket" icon="messages">
+  Retrieves all messages for a specific support ticket.
+</Card>
+
+```
+GET /support/messages/{ticket}
+```
+
+**Authentication:** `connected`
+
+**Path Parameters**
+
+<ParamField path="ticket" type="integer" required>
+  The ticket number.
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "messages": [
+      {
+        "id": 1,
+        "user": "76561198000000000",
+        "content": "I have an issue with my deposit...",
+        "admin": null,
+        "timestamp": 1706745600,
+        "attachments": ""
+      }
+    ],
+    "ticket": 1706745600
+  }
+}
+```
+
+**Errors**
+
+| Status | Message |
+|--------|---------|
+| `error` | Missing required parameter: ticket |
+| `error` | Ticket not found or no access |
+
+---
+
+## Create Support Ticket
+
+<Card title="POST /support/create" icon="plus">
+  Creates a new support ticket with an initial message.
+</Card>
+
+```
+POST /support/create
+```
+
+**Authentication:** `connected`
+
+**Body Parameters**
+
+<ParamField body="subject" type="string" required>
+  The subject/title of the support ticket.
+</ParamField>
+
+<ParamField body="description" type="string" required>
+  The initial message/description of the issue.
+</ParamField>
+
+<ParamField body="topic" type="string" required>
+  The topic category (e.g., `"trading"`, `"payment"`, `"account"`).
+</ParamField>
+
+<ParamField body="concern" type="string" required>
+  The specific concern (e.g., `"deposit"`, `"withdrawal"`, `"ban"`).
+</ParamField>
+
+<ParamField body="attachment" type="string">
+  Optional base64-encoded attachment.
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "ticket": 1706745600,
+    "message": "Support ticket created successfully"
+  }
+}
+```
+
+**Errors**
+
+| Status | Message |
+|--------|---------|
+| `error` | Missing required parameters: subject, description, topic, concern |
+| `error` | Invalid attachment |
+
+---
+
+## Post Message to Ticket
+
+<Card title="POST /support/post" icon="paper-plane">
+  Sends a message to an existing support ticket.
+</Card>
+
+```
+POST /support/post
+```
+
+**Authentication:** `connected`
+
+**Body Parameters**
+
+<ParamField body="content" type="string" required>
+  The message content (max 10,000 characters, HTML tags are stripped).
+</ParamField>
+
+<ParamField body="ticket" type="integer" required>
+  The ticket number to post to.
+</ParamField>
+
+<ParamField body="attachment" type="string">
+  Optional base64-encoded attachment.
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "message": "Message sent successfully",
+    "ticket": 1706745600
+  }
+}
+```
+
+**Errors**
+
+| Status | Message |
+|--------|---------|
+| `error` | Missing required parameters: content, ticket |
+| `error` | Cannot send message: ticket is closed |
+| `error` | Invalid attachment |
+
+---
+
+## Get Messages List
+
+<Card title="GET /messages/list" icon="inbox">
+  Retrieves a list of recent message conversations for the user.
+</Card>
+
+```
+GET /messages/list
+```
+
+**Authentication:** `connected`
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "list": []
+  }
+}
+```
+
+---
+
+## Admin: List Support Tickets
+
+<Card title="GET /admin/support/list" icon="headset">
+  Retrieves all active support tickets for admin view.
+</Card>
+
+```
+GET /admin/support/list
+```
+
+**Authentication:** `connected`, `admin`
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "list": [
+      {
+        "ticket": 1706745600,
+        "user": "76561198000000000",
+        "subject": "Item not received",
+        "status": 1,
+        "assigned": "AdminName"
+      }
+    ]
+  }
+}
+```
+
+---
+
+## Admin: Get Ticket Messages
+
+<Card title="GET /admin/support/messages/:ticket/:user" icon="messages">
+  Retrieves messages for a specific support ticket with admin details.
+</Card>
+
+```
+GET /admin/support/messages/{ticket}/{user}
+```
+
+**Authentication:** `connected`, `admin`
+
+**Path Parameters**
+
+<ParamField path="ticket" type="integer" required>
+  The ticket number.
+</ParamField>
+
+<ParamField path="user" type="string" required>
+  The user's Steam ID.
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "messages": [
+      {
+        "id": 1,
+        "user": "76561198000000000",
+        "content": "Message text...",
+        "admin": "AdminName",
+        "assigned": "AdminName",
+        "status": "Open",
+        "timestamp": 1706745600
+      }
+    ],
+    "ticket": 1706745600
+  }
+}
+```
+
+---
+
+## Admin: Post Message
+
+<Card title="POST /admin/support/post" icon="reply">
+  Sends a message to a support ticket as an admin. Triggers a Discord notification.
+</Card>
+
+```
+POST /admin/support/post
+```
+
+**Authentication:** `connected`, `admin`
+
+**Body Parameters**
+
+<ParamField body="content" type="string" required>
+  The message content (max 200,000 characters).
+</ParamField>
+
+<ParamField body="ticket" type="integer" required>
+  The ticket number.
+</ParamField>
+
+<ParamField body="user" type="string" required>
+  The Steam ID of the user the message is for.
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "message": "Message sent to support (admin) successfully",
+    "ticket": 1706745600
+  }
+}
+```
+
+---
+
+## Admin: Update Ticket Status
+
+<Card title="POST /admin/support/status" icon="pen">
+  Updates the status of a support ticket.
+</Card>
+
+```
+POST /admin/support/status
+```
+
+**Authentication:** `connected`, `admin`
+
+**Body Parameters**
+
+<ParamField body="ticket" type="integer" required>
+  The ticket number.
+</ParamField>
+
+<ParamField body="status" type="integer" required>
+  The new status code.
+</ParamField>
+
+<ParamField body="user" type="string" required>
+  The Steam ID of the ticket owner.
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "message": "Support ticket status updated successfully",
+    "ticket": 1706745600,
+    "status": 2
+  }
+}
+```
+
+---
+
+## Admin: Block/Unblock User
+
+<Card title="POST /admin/support/block" icon="ban">
+  Blocks or unblocks a user from creating support tickets.
+</Card>
+
+```
+POST /admin/support/block
+```
+
+**Authentication:** `connected`, `admin`
+
+**Body Parameters**
+
+<ParamField body="user" type="string" required>
+  The Steam ID of the user.
+</ParamField>
+
+<ParamField body="status" type="integer" required>
+  `1` to block, `0` to unblock.
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "message": "User blocked successfully",
+    "user": "76561198000000000",
+    "status": 1
+  }
+}
+```
+
+**Errors**
+
+| Status | Message |
+|--------|---------|
+| `error` | Missing required parameters: user, status |
+| `error` | Invalid status. Status must be 0 (unblocked) or 1 (blocked) |

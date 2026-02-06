@@ -1,0 +1,144 @@
+---
+title: "Inventory"
+description: "Manage your on-site inventory: items on sale, in inventory, withdraw, and random hat"
+---
+
+## Get items on sale
+
+```
+GET /inventory/onSale
+GET /inventory/onSale/{userid}
+```
+
+**Permission:** Connected (admin for `{userid}` variant)
+
+<ParamField path="userid" type="string">
+  SteamID of user (admin only)
+</ParamField>
+
+<ParamField query="skip" type="integer" default="0">
+  Pagination offset
+</ParamField>
+
+<ParamField query="limit" type="integer" default="10">
+  Number of items per page
+</ParamField>
+
+<ParamField query="search" type="string">
+  Search filter (matches against item name and effect)
+</ParamField>
+
+Returns items currently listed for sale by the user. Items are grouped by item definition (for non-CS2 items without special attributes) and price.
+
+### Response item type
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `ids` | string | Comma-separated backpack asset IDs (grouped) |
+| `count` | integer | Number of items in this group |
+| `item_id` | integer | Item definition ID |
+| `name` | string | Item name |
+| `effect` | string | Unusual effect (TF2) |
+| `url` | string | Item URL slug |
+| `game` | integer | Game App ID |
+| `quality` | string | Item quality |
+| `image` | string | Item image URL |
+| `assetId` | string | Representative asset ID |
+| `bot` | string | Bot holding the item |
+| `state` | integer | `1` (on sale) |
+| `price` | integer | Listed price in cents |
+
+---
+
+## Get items in inventory
+
+```
+GET /inventory/onInventory
+GET /inventory/onInventory/{userid}
+```
+
+**Permission:** Connected (admin for `{userid}` variant)
+
+<ParamField path="userid" type="string">
+  SteamID of user (admin only)
+</ParamField>
+
+<ParamField query="skip" type="integer" default="0">
+  Pagination offset
+</ParamField>
+
+<ParamField query="limit" type="integer" default="10">
+  Number of items per page
+</ParamField>
+
+<ParamField query="search" type="string">
+  Search filter
+</ParamField>
+
+Returns items in the user's on-site inventory that are **not** listed for sale (state = 0). Same response structure as `onSale`.
+
+---
+
+## Withdraw items
+
+```
+POST /inventory/withdraw
+```
+
+**Permission:** Connected
+
+Withdraws items from your on-site inventory back to your Steam account. Creates a trade offer.
+
+### Request body
+
+<ParamField body="ids" type="string" required>
+  Comma-separated list of backpack entry IDs to withdraw
+</ParamField>
+
+```json
+{
+  "ids": "12345,67890,11111"
+}
+```
+
+### Response
+
+```json
+{
+  "updated": 3,
+  "locked": 0
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `updated` | integer | Number of items successfully queued for withdrawal |
+| `locked` | integer | Number of items that could not be withdrawn (locked, expired, etc.) |
+
+<Warning>
+  Items with an active `expire` lock cannot be withdrawn until the lock expires.
+</Warning>
+
+---
+
+## Random Hat
+
+```
+POST /inventory/randomHat
+```
+
+**Permission:** Connected
+
+Converts multiple hats into a random hat. TF2-specific feature.
+
+### Request body
+
+<ParamField body="ids" type="string" required>
+  Comma-separated list of backpack entry IDs (hats to sacrifice)
+</ParamField>
+
+```json
+{
+  "ids": "1,2,3,4,5"
+}
+```

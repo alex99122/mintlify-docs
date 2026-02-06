@@ -1,0 +1,209 @@
+---
+title: "Offers"
+description: "Create, accept, decline, and manage price offers on items"
+---
+
+The offers system allows users to make price offers on items listed by other users, similar to a bidding mechanism.
+
+## Get received offers
+
+```
+GET /offers/received
+GET /offers/received/{userid}
+```
+
+**Permission:** Connected (admin for `{userid}` variant)
+
+<ParamField path="userid" type="string">
+  SteamID of user (admin only)
+</ParamField>
+
+Returns all active offers received by the user. The API automatically invalidates offers where:
+- The buyer has insufficient balance (status → `-1`)
+- The offer has expired (status → `-2`)
+- The item is no longer owned by the seller or not on sale (status → `-3`)
+
+### Offer type
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | integer | Offer ID |
+| `from` | string | Buyer SteamID |
+| `to` | string | Seller SteamID |
+| `status` | integer | Offer status |
+| `time` | integer | Expiration timestamp |
+| `price` | integer | Offered price in cents |
+| `read` | integer | Whether the offer has been read |
+| `createdAt` | integer | Creation timestamp |
+| `backpackid` | integer | Backpack entry ID |
+| `user` | object | Buyer info (`username`, `avatar`) |
+| `item` | object | Item details (see below) |
+
+### Offer item type
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | string | Item name |
+| `effect` | string | Unusual effect |
+| `url` | string | Item URL slug |
+| `game` | integer | Game App ID |
+| `quality` | string | Item quality |
+| `image` | string | Item image URL |
+| `type` | string | Item type |
+| `craftable` | integer | Craftable status |
+| `assetId` | string | Asset ID |
+| `wear` | float\|null | Wear value |
+| `sheen` | string | Killstreak sheen |
+| `killstreaker` | string | Killstreaker |
+| `spell` | string | Spells |
+| `parts` | string | Strange parts |
+| `state` | integer | Item state |
+
+### Offer statuses
+
+| Status | Description |
+|--------|-------------|
+| `0` | Active / Pending |
+| `1` | Accepted |
+| `2` | Declined by seller |
+| `3` | Removed by buyer |
+| `-1` | Auto-cancelled: buyer insufficient balance |
+| `-2` | Auto-cancelled: offer expired |
+| `-3` | Auto-cancelled: item unavailable |
+
+---
+
+## Get my offers
+
+```
+GET /offers/my
+GET /offers/my/{userid}
+```
+
+**Permission:** Connected (admin for `{userid}` variant)
+
+Returns all active offers made by the user. Same response structure as received offers, with `user` containing the seller's info instead.
+
+---
+
+## Create offer
+
+```
+POST /offers/create
+```
+
+**Permission:** Connected
+
+Creates a new price offer on an item.
+
+### Request body
+
+<ParamField body="id" type="integer" required>
+  Asset ID of the item (backpack assetId)
+</ParamField>
+
+<ParamField body="price" type="number" required>
+  Offered price in cents (must be ≤ current listing price)
+</ParamField>
+
+```json
+{
+  "id": 12345678,
+  "price": 10000
+}
+```
+
+### Validation rules
+
+- Maximum **10** active offers per user (configurable)
+- Offer price must be **≤ current listing price**
+- Cannot offer on your own items
+- Cannot create duplicate offers on the same item
+- If a buy order exists at a higher price, the offer is rejected
+- User must have sufficient balance
+- Offers expire after **24 hours** (configurable)
+
+### Response
+
+```json
+{
+  "success": true,
+  "message": "Offer created successfully"
+}
+```
+
+---
+
+## Decline offer
+
+```
+POST /offers/decline
+```
+
+**Permission:** Connected
+
+Declines a received offer. Only the seller can decline.
+
+<ParamField body="id" type="integer" required>
+  Offer ID
+</ParamField>
+
+```json
+{
+  "id": 123
+}
+```
+
+---
+
+## Remove offer
+
+```
+POST /offers/remove
+```
+
+**Permission:** Connected
+
+Removes/cancels an offer you made. Only the buyer can remove.
+
+<ParamField body="id" type="integer" required>
+  Offer ID
+</ParamField>
+
+```json
+{
+  "id": 123
+}
+```
+
+---
+
+## Accept offer
+
+```
+POST /offers/accept
+```
+
+**Permission:** Connected
+
+Accepts a received offer. This triggers the full transaction:
+
+1. Buyer's balance is deducted by the offer price
+2. Item ownership is transferred to the buyer (state set to `0`)
+3. Seller receives 95% of the offer price (5% marketplace fee)
+4. Transaction is recorded in history for both parties
+5. Daily stats are updated
+
+<ParamField body="id" type="integer" required>
+  Offer ID
+</ParamField>
+
+```json
+{
+  "id": 123
+}
+```
+
+<Warning>
+  The 5% marketplace fee is automatically applied. The seller receives `ceil(price × 0.95)`.
+</Warning>

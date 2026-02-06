@@ -1,0 +1,202 @@
+---
+title: "Admin"
+description: "Administrative endpoints for user bans, trade management, and Steam inventory access"
+---
+
+<Warning>
+  All endpoints in this section require **admin** privileges. Unauthorized access will result in a `403 Forbidden` response.
+</Warning>
+
+## Ban / Unban User
+
+<Card title="POST /admin/ban" icon="gavel">
+  Bans or unbans a user. Sends a notification to the Discord moderation channel with ban details.
+</Card>
+
+```
+POST /admin/ban
+```
+
+**Authentication:** `connected`, `admin`
+
+**Body Parameters**
+
+<ParamField body="steamId" type="string" required>
+  The Steam ID of the user to ban/unban.
+</ParamField>
+
+<ParamField body="time" type="integer" required>
+  Ban duration in seconds. Set to `0` to unban.
+</ParamField>
+
+<ParamField body="reason" type="string" required>
+  Reason for the ban.
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "message": "User banned",
+    "steamId": "76561198000000000",
+    "duration": "7 days",
+    "reason": "Market manipulation"
+  }
+}
+```
+
+**Unban Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "message": "User unbanned",
+    "steamId": "76561198000000000",
+    "duration": "0",
+    "reason": "Appeal accepted"
+  }
+}
+```
+
+**Errors**
+
+| Status | Message |
+|--------|---------|
+| `error` | Missing required parameters: steamId, time, reason |
+| `error` | Admin user not found |
+
+---
+
+## Get Ban History
+
+<Card title="GET /admin/banList" icon="list">
+  Retrieves the ban history for a specific user.
+</Card>
+
+```
+GET /admin/banList
+```
+
+**Authentication:** `connected`, `admin`
+
+**Query Parameters**
+
+<ParamField query="steamId" type="string" required>
+  The Steam ID of the user to look up.
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "steamId": "76561198000000000",
+    "bans": [
+      {
+        "id": 1,
+        "steamId": "76561198000000000",
+        "time": 604800,
+        "reason": "Market manipulation",
+        "staffId": "76561198999999999",
+        "timestamp": 1706745600
+      }
+    ],
+    "count": 2
+  }
+}
+```
+
+---
+
+## Revert Trade
+
+<Card title="POST /admin/revertTrade/:trade" icon="rotate-left">
+  Reverts a failed or errored trade, restoring items to the user's inventory.
+</Card>
+
+```
+POST /admin/revertTrade/{trade}
+```
+
+**Authentication:** `connected`, `admin`
+
+**Path Parameters**
+
+<ParamField path="trade" type="integer" required>
+  The trade ID to revert.
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "message": "Trade reverted successfully",
+    "tradeId": 12345,
+    "itemsUpdated": 3,
+    "items": [
+      {
+        "id": 1,
+        "name": "Unusual Hat",
+        "assetId": "9876543210"
+      }
+    ]
+  }
+}
+```
+
+**Errors**
+
+| Status | Message |
+|--------|---------|
+| `error` | Missing required parameter: trade |
+| `error` | Trade not found |
+| `error` | No trade found with status -1 to revert |
+
+---
+
+## Get Steam Inventory (Admin)
+
+<Card title="GET /admin/getSteamInventory" icon="box-open">
+  Retrieves the Steam inventory of a user directly from the Steam API. Used for admin verification purposes.
+</Card>
+
+```
+GET /admin/getSteamInventory
+```
+
+**Authentication:** `connected`, `admin`
+
+**Query Parameters**
+
+<ParamField query="game" type="integer" required>
+  The game ID (e.g., `440` for TF2, `730` for CS:GO).
+</ParamField>
+
+<ParamField query="steamid" type="string" required>
+  The Steam ID of the user whose inventory to fetch.
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "items": [
+      {
+        "assetid": "9876543210",
+        "classid": "123456",
+        "instanceid": "0",
+        "name": "Item Name",
+        "icon_url": "https://..."
+      }
+    ]
+  }
+}
+```

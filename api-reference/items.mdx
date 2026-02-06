@@ -1,0 +1,340 @@
+---
+title: "Items"
+description: "Browse item details, listings, pricing, sales graphs, and buy order lists"
+---
+
+## Get item details
+
+<ParamField path="item" type="string" required>
+  Item identifier (numeric ID or URL slug)
+</ParamField>
+
+```
+GET /item/details/{item}
+```
+
+**Permission:** Public
+
+Returns full item details from the `items` table. You can pass either a numeric item ID or a URL slug.
+
+### Response
+
+```json
+{
+  "id": 12345,
+  "name": "Unusual Burning Flames Team Captain",
+  "effect": "Burning Flames",
+  "url": "unusual-burning-flames-team-captain",
+  "game": 440,
+  "quality": "Unusual",
+  "image": "https://...",
+  "type": "Cosmetic",
+  "craftable": 1,
+  "deal": 150000
+}
+```
+
+### Item type
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | integer | Unique item ID |
+| `name` | string | Item display name |
+| `effect` | string | Unusual effect name (TF2) or empty |
+| `url` | string | URL-friendly slug |
+| `game` | integer | Game App ID (`440`, `730`, `570`, `252490`) |
+| `quality` | string | Item quality (Unique, Strange, Unusual, etc.) |
+| `image` | string | Item image URL |
+| `type` | string | Item type/category |
+| `craftable` | integer | `1` = craftable, `0` = uncraftable |
+| `deal` | integer | Steam market price in cents |
+
+---
+
+## Request item image
+
+```
+GET /item/requestImage/{item}
+```
+
+**Permission:** Public
+
+<ParamField path="item" type="string" required>
+  Item identifier
+</ParamField>
+
+Requests a fresh image render for the specified item.
+
+---
+
+## Get item sales graph
+
+```
+GET /item/salesGraph/{item}
+```
+
+**Permission:** Connected
+
+<ParamField path="item" type="string" required>
+  Item identifier
+</ParamField>
+
+Returns historical sales data for charting. Data is aggregated from the `items_stats` table with daily price and volume.
+
+### Response
+
+```json
+[
+  {
+    "itemid": 12345,
+    "date": "2025-01-15",
+    "price": 50000,
+    "nb": 3
+  }
+]
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `itemid` | integer | Item ID |
+| `date` | string | Date (YYYY-MM-DD) |
+| `price` | integer | Total sales value in cents for the day |
+| `nb` | integer | Number of sales that day |
+
+---
+
+## Get listing count
+
+```
+GET /item/listing/count/{item}
+GET /item/listing/count/{item}/{userid}
+```
+
+**Permission:** Public
+
+<ParamField path="item" type="string" required>
+  Item identifier (numeric ID)
+</ParamField>
+
+<ParamField path="userid" type="string">
+  Optional user SteamID to filter listings by seller
+</ParamField>
+
+Returns the number of active listings for an item. If `userid` is provided, returns the count for that specific seller only.
+
+### Response
+
+```json
+{
+  "nb": 42
+}
+```
+
+---
+
+## Get item listings
+
+```
+GET /item/listing/{item}
+GET /item/listing/{item}/{userid}
+```
+
+**Permission:** Public
+
+<ParamField path="item" type="string" required>
+  Item identifier (numeric ID)
+</ParamField>
+
+<ParamField path="userid" type="string">
+  Optional user SteamID to filter by seller
+</ParamField>
+
+<ParamField query="count" type="integer" default="10">
+  Number of items per page
+</ParamField>
+
+<ParamField query="page" type="integer" default="0">
+  Page number (offset = page × count)
+</ParamField>
+
+<ParamField query="game" type="integer">
+  Game ID filter (`440` for TF2, `730` for CS2). Affects which extra info is joined.
+</ParamField>
+
+Returns paginated listings sorted by price ascending. Each listing includes backpack details.
+
+### Listing type
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | integer | Backpack entry ID |
+| `assetId` | string | Steam asset ID |
+| `item_id` | integer | Item definition ID |
+| `user` | string | Seller SteamID |
+| `state` | integer | Item state (`1` = on sale) |
+| `price` | integer | Listed price in cents |
+| `bot` | string | Bot holding the item |
+| `game` | integer | Game App ID |
+| `wear` | float\|null | Wear value (CS2 items) |
+| `sheen` | string | Killstreak sheen (TF2) |
+| `killstreaker` | string | Killstreaker effect (TF2) |
+| `spell` | string | Halloween spell (TF2) |
+| `parts` | string | Strange parts (TF2) |
+| `html` | string | Custom HTML description |
+| `paint` | string | Paint color (TF2) |
+| `values` | object\|null | Extra inspection values (CS2/TF2) |
+| `getImage` | string\|null | Custom image URL |
+
+---
+
+## Get buy order list
+
+```
+GET /item/buyorderList/{item}
+```
+
+**Permission:** Public
+
+<ParamField path="item" type="string" required>
+  Item identifier (numeric ID)
+</ParamField>
+
+Returns all active buy orders for an item, grouped by price and sorted descending.
+
+### Response
+
+```json
+[
+  {
+    "price": 15000,
+    "itemid": 12345,
+    "nb": 5
+  }
+]
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `price` | integer | Buy order price in cents |
+| `itemid` | integer | Item ID |
+| `nb` | integer | Total quantity at this price |
+
+---
+
+## Get item pricing
+
+```
+GET /item/pricing/{item}
+```
+
+**Permission:** Connected
+
+<ParamField path="item" type="string" required>
+  Item identifier (numeric ID)
+</ParamField>
+
+Returns calculated pricing data for an item including lowest sale, highest buy order, Steam price, and a suggested listing price.
+
+### Response
+
+```json
+{
+  "item_id": 12345,
+  "lowest_sale_price": 15000,
+  "lowest_buy_order": 12000,
+  "steam_price": 18000,
+  "suggested_price": 14999
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `item_id` | integer | Item ID |
+| `lowest_sale_price` | float | Lowest active listing price in cents |
+| `lowest_buy_order` | float | Highest active buy order price in cents |
+| `steam_price` | float | Steam Community Market price in cents |
+| `suggested_price` | float | Suggested listing price (lowest of sale-1 and steam-1) |
+
+<Info>
+  Pricing data is cached for 20 minutes. Fresh data is calculated and stored when the cache expires.
+</Info>
+
+---
+
+## Get bulk pricing
+
+```
+GET /item/pricing/bulk
+```
+
+**Permission:** Connected
+
+<ParamField query="items" type="string" required>
+  Comma-separated item IDs (maximum 20 items)
+</ParamField>
+
+Returns pricing data for multiple items at once.
+
+```
+GET /item/pricing/bulk?items=12345,67890,11111
+```
+
+---
+
+## Get item details from backpack ID
+
+```
+GET /item/details/fromid/{backpackid}
+```
+
+**Permission:** Public
+
+<ParamField path="backpackid" type="string" required>
+  Backpack asset ID
+</ParamField>
+
+Returns full backpack + item details for a TF2 item by its asset ID. Joins `backpack`, `items`, and `item_infos` tables.
+
+---
+
+## Get CS2 item details from backpack ID
+
+```
+GET /item/cs/details/fromid/{backpackid}
+```
+
+**Permission:** Public
+
+<ParamField path="backpackid" type="string" required>
+  Backpack asset ID
+</ParamField>
+
+Same as above but specifically for CS2 items with wear, sticker, and pattern information.
+
+---
+
+## Get raffle items
+
+```
+GET /item/getRaffleItems
+```
+
+**Permission:** Connected
+
+Returns all items in the connected user's inventory (state = 0) that can be used to create giveaways. Includes full item details with inspection values.
+
+---
+
+## Get buy order and lowest sales prices
+
+```
+GET /infos/prices/buyorderAndLowestSales
+```
+
+**Permission:** Public
+
+Returns a CSV-like string with buy order and lowest sale prices for all items. Format: `itemId;buyOrderPrice;lowestSalePrice,`
+
+<Info>
+  This endpoint is cached for 3 minutes. Add `?update=1` to force a refresh.
+</Info>

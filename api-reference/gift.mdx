@@ -1,0 +1,55 @@
+---
+title: "Gift Codes"
+description: "Endpoint for claiming gift codes to add funds to user balance"
+---
+
+## Claim Gift Code
+
+<Card title="POST /gift/claim" icon="gift">
+  Redeems a gift code to add funds to the user's account balance. Requires reCAPTCHA verification.
+</Card>
+
+```
+POST /gift/claim
+```
+
+**Authentication:** `connected`, `recaptcha`
+
+**Body Parameters**
+
+<ParamField body="code" type="string" required>
+  The gift code to redeem. Can include hyphens (they are automatically removed). Must be 20 or 25 characters long (after removing hyphens).
+</ParamField>
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "message": "Gift code claimed successfully",
+    "amount": "50.00",
+    "amount_raw": 5000,
+    "type": "funds"
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `message` | string | Success confirmation message |
+| `amount` | string | Formatted amount added (in dollars) |
+| `amount_raw` | integer | Raw amount added (in cents) |
+| `type` | string | Gift code type (currently only `"funds"`) |
+
+**Errors**
+
+| Status | Message |
+|--------|---------|
+| `error` | Missing code parameter |
+| `error` | Invalid gift code |
+| `error` | Invalid gift code or already used |
+
+<Note>
+  Gift codes are single-use. Once claimed, they cannot be reused.
+</Note>

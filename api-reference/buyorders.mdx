@@ -1,0 +1,190 @@
+---
+title: "Buy Orders"
+description: "Place, update, and remove standing buy orders for items"
+---
+
+Buy orders are standing offers to purchase a specific item at a set price. When a seller lists an item that matches an active buy order, the transaction can be automatically executed.
+
+## Create buy order
+
+```
+POST /item/buyorder
+```
+
+**Permission:** Connected
+
+<ParamField body="itemid" type="integer" required>
+  Item definition ID
+</ParamField>
+
+<ParamField body="value" type="number" required>
+  Buy order price in cents
+</ParamField>
+
+<ParamField body="amount" type="integer" required>
+  Quantity to buy (max 500,000)
+</ParamField>
+
+```json
+{
+  "itemid": 12345,
+  "value": 1500,
+  "amount": 100
+}
+```
+
+### Validation rules
+
+- Cannot have duplicate buy orders for the same item
+- Amount must be ≤ 500,000
+- User must have sufficient balance to cover `amount × price`
+- Buy order modifications are tracked per day per user
+
+---
+
+## Update buy order
+
+```
+POST /item/buyorder/update
+```
+
+**Permission:** Connected
+
+Updates the price and/or amount of an existing buy order.
+
+<ParamField body="itemid" type="integer" required>
+  Item definition ID
+</ParamField>
+
+<ParamField body="value" type="number" required>
+  New buy order price in cents
+</ParamField>
+
+<ParamField body="amount" type="integer" required>
+  New quantity
+</ParamField>
+
+```json
+{
+  "itemid": 12345,
+  "value": 1750,
+  "amount": 150
+}
+```
+
+---
+
+## Remove buy order
+
+```
+POST /item/buyorder/remove
+```
+
+**Permission:** Connected
+
+Removes an active buy order, setting its amount to 0.
+
+<ParamField body="itemid" type="integer" required>
+  Item definition ID
+</ParamField>
+
+```json
+{
+  "itemid": 12345
+}
+```
+
+---
+
+## Get user buy order for an item
+
+```
+GET /user/buyorder/{item}
+```
+
+**Permission:** Connected
+
+<ParamField path="item" type="string" required>
+  Item definition ID
+</ParamField>
+
+Returns the connected user's buy order for the specified item (if one exists).
+
+### Buy order type
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | integer | Buy order ID |
+| `steamid` | string | User SteamID |
+| `itemid` | integer | Item definition ID |
+| `price` | integer | Buy order price in cents |
+| `amount` | integer | Remaining quantity |
+| `name` | string | Buy order name |
+
+---
+
+## Get user buy order list
+
+```
+GET /user/getBuyorder
+GET /user/getBuyorder/{userid}
+```
+
+**Permission:** Connected (admin for `{userid}` variant)
+
+<ParamField path="userid" type="string">
+  SteamID of user (admin only)
+</ParamField>
+
+<ParamField query="skip" type="integer" default="0">
+  Pagination offset
+</ParamField>
+
+<ParamField query="limit" type="integer" default="10">
+  Number of items per page
+</ParamField>
+
+<ParamField query="search" type="string">
+  Search filter (matches item name + effect, minimum 4 characters)
+</ParamField>
+
+Returns the user's active buy order list with full item details. Includes both count and paginated data.
+
+### Response
+
+```json
+{
+  "count": 25,
+  "data": [
+    {
+      "steamid": "76561198000000000",
+      "itemid": 12345,
+      "price": 1500,
+      "amount": 10,
+      "name": "Unusual Burning Flames Team Captain",
+      "effect": "Burning Flames",
+      "url": "unusual-burning-flames-team-captain",
+      "image": "https://..."
+    }
+  ]
+}
+```
+
+---
+
+## Buy order lifecycle
+
+<Steps>
+  <Step title="Creation">
+    User creates a buy order with a price and quantity.
+  </Step>
+  <Step title="Balance check (cron)">
+    A cron job periodically checks if users have sufficient balance to cover their buy orders. Orders are deactivated (amount set to negative) if balance is insufficient, and reactivated when balance is restored.
+  </Step>
+  <Step title="Execution">
+    When a matching item is listed for sale at or below the buy order price, the transaction is executed automatically.
+  </Step>
+  <Step title="Cleanup">
+    Buy orders with amount = 0 are periodically deleted by the cron job.
+  </Step>
+</Steps>

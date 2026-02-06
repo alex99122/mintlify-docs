@@ -1,33 +1,144 @@
 ---
-title: 'Introduction'
-description: 'Example section for showcasing API endpoints'
+title: "Introduction"
+description: "Overview of the Mannco.store API: authentication, base URL, errors, and permissions"
 ---
 
-<Note>
-  If you're not looking to build API reference documentation, you can delete
-  this section by removing the api-reference folder.
-</Note>
+## Base URL
 
-## Welcome
+All API requests are made to:
 
-There are two ways to build API documentation: [OpenAPI](https://mintlify.com/docs/api-playground/openapi/setup) and [MDX components](https://mintlify.com/docs/api-playground/mdx/configuration). For the starter kit, we are using the following OpenAPI specification.
-
-<Card
-  title="Plant Store Endpoints"
-  icon="leaf"
-  href="https://github.com/mintlify/starter/blob/main/api-reference/openapi.json"
->
-  View the OpenAPI specification file
-</Card>
+```
+https://mannco.store
+```
 
 ## Authentication
 
-All API endpoints are authenticated using Bearer tokens and picked up from the specification file.
+The API uses **session-based authentication** via Steam OpenID. Most endpoints require the user to be logged in (session cookie). Mutating requests (POST, PUT, PATCH, DELETE) additionally require a valid **CSRF token**.
+
+### Session flow
+
+1. The user authenticates via Steam OpenID at `GET /user/login`
+2. A session cookie is set on successful authentication
+3. The session cookie must be sent with every subsequent request
+4. Retrieve a CSRF token via `GET /csrf/token` before making any write request
+
+### CSRF protection
+
+All `POST`, `PUT`, `PATCH`, and `DELETE` requests are protected by CSRF validation. You must include a valid CSRF token in your requests.
+
+<Note>
+  POST requests accept both `application/json` and `application/x-www-form-urlencoded` content types. JSON payloads are automatically decoded.
+</Note>
+
+## Permission levels
+
+Endpoints require specific permission levels, indicated by tags in the documentation:
+
+| Permission | Description |
+|-----------|-------------|
+| **Public** | No authentication required |
+| **Connected** | User must be logged in |
+| **2FA** | User must have validated 2FA for the current session |
+| **Admin** | User must have admin privileges |
+| **Moderator** | User must have moderator privileges |
+| **Recaptcha** | Request must include a valid reCAPTCHA token |
+
+Many endpoints have an admin variant that accepts a `{userid}` path parameter to operate on behalf of another user.
+
+## Response format
+
+All API responses return JSON. Successful responses typically have this structure:
 
 ```json
-"security": [
-  {
-    "bearerAuth": []
-  }
-]
+{
+  "status": "success",
+  "data": { ... }
+}
 ```
+
+Error responses follow this pattern:
+
+```json
+{
+  "status": "error",
+  "message": "Description of the error"
+}
+```
+
+## Error codes
+
+| HTTP Code | Description |
+|-----------|-------------|
+| `200` | Success |
+| `401` | Not authenticated — user must log in |
+| `403` | Forbidden — insufficient permissions, invalid CSRF, or reCAPTCHA failure |
+| `404` | Endpoint not found |
+
+### Specific error pages
+
+| Error | Trigger |
+|-------|---------|
+| `401` | Missing or invalid session (`connected` filter) |
+| `403` | Insufficient role (`admin`, `moderator`, `server`) |
+| `403 CSRF` | Invalid or missing CSRF token |
+| `403 Recaptcha` | Failed reCAPTCHA validation |
+| `2FA Required` | 2FA validation needed for this operation |
+
+## Rate limiting
+
+Some operations have built-in rate limits:
+- **Giveaway creation**: 1 per hour per user
+- **Giveaway comments**: 1 per 10 minutes per user
+- **Buy order modifications**: Tracked per day per user
+- **Email validation codes**: 1 per 5 minutes
+
+## Prices
+
+All prices in the API are stored as **integers in cents**. For example, `$1.50` is represented as `150`.
+
+## Common types
+
+### SteamID
+
+User identifiers are Steam 64-bit IDs (e.g., `76561198000000000`), passed as strings.
+
+### Game IDs
+
+| Game | ID |
+|------|-----|
+| Team Fortress 2 | `440` |
+| Counter-Strike 2 | `730` |
+| Dota 2 | `570` |
+| Rust | `252490` |
+
+### Item states (backpack)
+
+| State | Description |
+|-------|-------------|
+| `0` | In user inventory (not listed) |
+| `1` | Listed for sale |
+| `2` | Pending withdrawal |
+| `3` | In active trade |
+| Negative | Reserved for giveaway |
+
+### Offer statuses
+
+| Status | Description |
+|--------|-------------|
+| `0` | Active / Pending |
+| `1` | Accepted |
+| `2` | Declined |
+| `3` | Removed / Cancelled |
+| `-1` | Auto-cancelled: buyer insufficient balance |
+| `-2` | Auto-cancelled: offer expired |
+| `-3` | Auto-cancelled: item no longer available |
+
+### Trade statuses
+
+| Status | Description |
+|--------|-------------|
+| `0` | Pending |
+| `3` | Completed |
+| `-1` | Failed |
+| `-11` | Hidden |
+| `-12` | Reverted (admin) |

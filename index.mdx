@@ -1,97 +1,67 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "Mannco.store API Documentation"
+description: "Complete API reference for the Mannco.store TF2, CS2, Dota 2 & Rust trading platform"
 ---
 
-## Setting up
+## Welcome
 
-Get your documentation site up and running in minutes.
+Mannco.store is a marketplace for trading Steam items across multiple games including **Team Fortress 2** (440), **Counter-Strike 2** (730), **Dota 2** (570), and **Rust** (252490). This documentation covers the complete REST API.
 
 <Card
-  title="Start here"
+  title="API Introduction"
   icon="rocket"
-  href="/quickstart"
+  href="/api-reference/introduction"
   horizontal
 >
-  Follow our three step quickstart guide.
+  Learn about authentication, base URL, error handling, and permissions.
 </Card>
 
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
+## API Categories
 
 <Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+  <Card title="Items" icon="box" href="/api-reference/items">
+    Browse item details, listings, pricing, sales graphs, and buy order lists.
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card title="Inventory" icon="warehouse" href="/api-reference/inventory">
+    Manage your on-site inventory: list items for sale, withdraw, and more.
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  <Card title="Trades" icon="right-left" href="/api-reference/trades">
+    Track active and historical Steam trades.
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card title="Offers" icon="handshake" href="/api-reference/offers">
+    Create, accept, decline, and manage price offers on items.
+  </Card>
+  <Card title="Buy Orders" icon="cart-shopping" href="/api-reference/buyorders">
+    Place, update, and remove buy orders for items.
+  </Card>
+  <Card title="Deposit" icon="arrow-down-to-bracket" href="/api-reference/deposit">
+    Deposit Steam items onto the platform for selling.
+  </Card>
+  <Card title="User" icon="user" href="/api-reference/user/authentication">
+    Authentication, account info, settings, 2FA, email, and history.
+  </Card>
+  <Card title="Giveaways" icon="gift" href="/api-reference/giveaways">
+    Create and participate in community giveaways.
+  </Card>
+  <Card title="Support" icon="headset" href="/api-reference/support">
+    Create and manage support tickets.
+  </Card>
+  <Card title="Cashout" icon="money-bill-wave" href="/api-reference/cashout">
+    Withdraw your balance via PayPal, Payoneer, or Tipalti.
+  </Card>
+  <Card title="Cart & Payment" icon="credit-card" href="/api-reference/cart">
+    Bulk add items to cart and process payments.
+  </Card>
+  <Card title="Utilities" icon="wrench" href="/api-reference/utils">
+    Bot info, trade URL check, in-game inspection, and more.
   </Card>
 </Columns>
 
-## Create beautiful pages
+## Supported Games
 
-Everything you need to create world-class documentation.
-
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
-
-## Need inspiration?
-
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+| Game | App ID | Description |
+|------|--------|-------------|
+| Team Fortress 2 | `440` | Hats, weapons, unusuals, killstreaks, spells |
+| Counter-Strike 2 | `730` | Skins, stickers, keychains, wear values |
+| Dota 2 | `570` | Cosmetics, arcanas, immortals |
+| Rust | `252490` | Skins and cosmetics |
