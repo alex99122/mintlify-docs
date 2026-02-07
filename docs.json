@@ -24,10 +24,9 @@
         "tab": "Documentation",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Getting Started",
             "pages": [
-              "index",
-              "api-reference/introduction"
+              "index"
             ]
           }
         ]
@@ -42,43 +41,33 @@
             ]
           },
           {
-            "group": "Items",
+            "group": "Items & Inventory",
             "pages": [
-              "api-reference/items"
+              "api-reference/items",
+              "api-reference/inventory",
+              "api-reference/bundles"
             ]
           },
           {
-            "group": "Inventory",
+            "group": "Trading",
             "pages": [
-              "api-reference/inventory"
-            ]
-          },
-          {
-            "group": "Trades",
-            "pages": [
-              "api-reference/trades"
-            ]
-          },
-          {
-            "group": "Offers",
-            "pages": [
-              "api-reference/offers"
-            ]
-          },
-          {
-            "group": "Buy Orders",
-            "pages": [
+              "api-reference/trades",
+              "api-reference/offers",
               "api-reference/buyorders"
             ]
           },
           {
-            "group": "Deposit",
+            "group": "Payments",
             "pages": [
-              "api-reference/deposit"
+              "api-reference/deposit",
+              "api-reference/cart",
+              "api-reference/payment",
+              "api-reference/gift",
+              "api-reference/cashout"
             ]
           },
           {
-            "group": "User",
+            "group": "User Management",
             "pages": [
               "api-reference/user/authentication",
               "api-reference/user/account",
@@ -89,67 +78,23 @@
             ]
           },
           {
-            "group": "Giveaways",
+            "group": "Community & Support",
             "pages": [
-              "api-reference/giveaways"
-            ]
-          },
-          {
-            "group": "Support",
-            "pages": [
+              "api-reference/giveaways",
               "api-reference/support"
             ]
           },
           {
-            "group": "Cashout",
+            "group": "System",
             "pages": [
-              "api-reference/cashout"
-            ]
-          },
-          {
-            "group": "Cart & Payment",
-            "pages": [
-              "api-reference/cart",
-              "api-reference/payment",
-              "api-reference/gift"
-            ]
-          },
-          {
-            "group": "Utilities",
-            "pages": [
-              "api-reference/utils"
-            ]
-          },
-          {
-            "group": "Bundles",
-            "pages": [
-              "api-reference/bundles"
-            ]
-          },
-          {
-            "group": "Infos & Pricing",
-            "pages": [
-              "api-reference/infos"
-            ]
-          },
-          {
-            "group": "Admin",
-            "pages": [
+              "api-reference/utils",
+              "api-reference/infos",
               "api-reference/admin"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Website",
-          "href": "https://mannco.store",
-          "icon": "globe"
-        }
-      ]
-    }
+    ]
   },
   "logo": {
     "light": "/logo/light.svg",
@@ -166,11 +111,6 @@
       "type": "button",
       "label": "Mannco.store",
       "href": "https://mannco.store"
-    }
-  },
-  "footer": {
-    "socials": {
-      "discord": "https://discord.gg/mannco"
     }
   }
 }
