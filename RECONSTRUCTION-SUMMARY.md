@@ -128,8 +128,6 @@ Vider et reconstruire la documentation Mintlify pour inclure **uniquement les ro
 #### 15. Utilities
 - **api-reference/utils.mdx**
   - `GET /utils/tradeurlCheck`
-  - `GET /utils/bots`
-  - `GET /utils/infos`
 
 #### 16. Public Data
 - **api-reference/public-data.mdx**
@@ -181,7 +179,11 @@ api-reference/
 
 Les routes suivantes ont été **exclues** car elles n'ont PAS le filtre "api" :
 
+- `GET /item/requestImage` - array() vide
 - `GET /user/login` (Steam OpenID - non-API)
+- `GET /user/isConnected` - array() vide
+- `GET /utils/bots` - array() vide
+- `GET /utils/infos` - array() vide
 - Tous les endpoints de giveaways sans filtre "api"
 - Tous les endpoints de support sans filtre "api"
 - Tous les endpoints admin
@@ -199,7 +201,7 @@ Les routes suivantes ont été **exclues** car elles n'ont PAS le filtre "api" :
 
 ## Nombre Total d'Endpoints Documentés
 
-**~80+ endpoints API** répartis sur 16 fichiers de documentation
+**~64 endpoints API** répartis sur 16 fichiers de documentation
 
 ## Notes
 

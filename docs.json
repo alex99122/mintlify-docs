@@ -61,56 +61,105 @@
           {
             "group": "Items",
             "pages": [
-              "api-reference/items",
-              "api-reference/inventory",
-              "api-reference/bundles"
+              "api-reference/items"
             ]
           },
           {
-            "group": "Trading",
+            "group": "Inventory",
             "pages": [
-              "api-reference/trades",
-              "api-reference/offers",
+              "api-reference/inventory"
+            ]
+          },
+          {
+            "group": "Trades",
+            "pages": [
+              "api-reference/trades"
+            ]
+          },
+          {
+            "group": "Offers",
+            "pages": [
+              "api-reference/offers"
+            ]
+          },
+          {
+            "group": "Buy Orders",
+            "pages": [
               "api-reference/buyorders"
             ]
           },
           {
-            "group": "Payments",
+            "group": "Deposit",
             "pages": [
-              "api-reference/deposit",
-              "api-reference/cart",
-              "api-reference/payment",
-              "api-reference/gift",
-              "api-reference/cashout"
+              "api-reference/deposit"
             ]
           },
           {
             "group": "User Account",
             "pages": [
-              "api-reference/user-account",
-              "api-reference/user-settings",
-              "api-reference/user-2fa",
-              "api-reference/user-email",
+              "api-reference/user-account"
+            ]
+          },
+          {
+            "group": "User Settings",
+            "pages": [
+              "api-reference/user-settings"
+            ]
+          },
+          {
+            "group": "Two-Factor Authentication",
+            "pages": [
+              "api-reference/user-2fa"
+            ]
+          },
+          {
+            "group": "Email Management",
+            "pages": [
+              "api-reference/user-email"
+            ]
+          },
+          {
+            "group": "User History",
+            "pages": [
               "api-reference/user-history"
             ]
           },
           {
-            "group": "Cashout & Payment",
+            "group": "Cashout",
             "pages": [
-              "api-reference/cashout",
+              "api-reference/cashout"
+            ]
+          },
+          {
+            "group": "Payment",
+            "pages": [
               "api-reference/payment"
             ]
           },
           {
-            "group": "Utilities & Public Data",
+            "group": "Utilities",
             "pages": [
-              "api-reference/utils",
+              "api-reference/utils"
+            ]
+          },
+          {
+            "group": "Public Data",
+            "pages": [
               "api-reference/public-data"
             ]
           }
         ]
       }
-    ]
+    ],
+    "global": {
+      "anchors": [
+        {
+          "anchor": "Website",
+          "href": "https://mannco.store",
+          "icon": "globe"
+        }
+      ]
+    }
   },
   "logo": {
     "light": "/logo/light.svg",
@@ -127,6 +176,11 @@
       "type": "button",
       "label": "Mannco.store",
       "href": "https://mannco.store"
+    }
+  },
+  "footer": {
+    "socials": {
+      "discord": "https://discord.gg/mannco"
     }
   }
 }
