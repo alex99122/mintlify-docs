@@ -15,19 +15,15 @@ Initiates an email change request. Requires 2FA validation.
 
 ### Body Parameters
 
-<ParamField body="newEmail" type="string" required>
+<ParamField body="email" type="string" required>
   New email address
-</ParamField>
-
-<ParamField body="password" type="string">
-  User password for additional verification (if applicable)
 </ParamField>
 
 ### Request Example
 
 ```json
 {
-  "newEmail": "newemail@example.com"
+  "email": "newemail@example.com"
 }
 ```
 
@@ -36,13 +32,7 @@ Initiates an email change request. Requires 2FA validation.
 ```json Success
 {
   "status": "success",
-  "data": {
-    "requestId": 12345,
-    "verificationSentTo": "newemail@example.com",
-    "currentEmail": "oldemail@example.com",
-    "expiresAt": "1706835600",
-    "message": "Verification email sent to new address. Click the link to confirm."
-  }
+  "data": "Email change request created successfully"
 }
 ```
 
@@ -74,19 +64,14 @@ Completes an email change using the verification code sent to the new email addr
 ### Body Parameters
 
 <ParamField body="code" type="string" required>
-  Verification code from email
-</ParamField>
-
-<ParamField body="requestId" type="integer" required>
-  Email change request ID
+  Verification code from email (can be an array of strings or a single string)
 </ParamField>
 
 ### Request Example
 
 ```json
 {
-  "code": "ABCD1234EFGH5678",
-  "requestId": 12345
+  "code": "123456"
 }
 ```
 
@@ -95,11 +80,7 @@ Completes an email change using the verification code sent to the new email addr
 ```json Success
 {
   "status": "success",
-  "data": {
-    "newEmail": "newemail@example.com",
-    "verified": true,
-    "message": "Email address changed successfully"
-  }
+  "data": "Email change validation success"
 }
 ```
 

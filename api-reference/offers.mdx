@@ -24,24 +24,44 @@ Returns trade offers that the authenticated user has received from other users.
 ```json
 {
   "status": "success",
-  "data": [
-    {
-      "id": 12345,
-      "buyer": "76561198000000000",
-      "seller": "76561198111111111",
-      "items": [
-        {
-          "backpackId": 98765,
-          "name": "Unusual Team Captain",
-          "price": 150000
+  "data": {
+    "offers": [
+      {
+        "id": 12345,
+        "from": "76561198000000000",
+        "to": "76561198111111111",
+        "status": 0,
+        "time": 1706832000,
+        "price": 150000,
+        "read": 0,
+        "createdAt": "1706745600",
+        "backpackid": 98765,
+        "user": {
+          "username": "BuyerName",
+          "avatar": "https://avatars.steamstatic.com/..."
+        },
+        "item": {
+          "name": "Team Captain",
+          "effect": "Burning Flames",
+          "url": "unusual_team_captain",
+          "game": 440,
+          "quality": "Unusual",
+          "image": "https://...",
+          "type": "Hat",
+          "craftable": 1,
+          "assetId": "987654321",
+          "wear": null,
+          "sheen": "",
+          "killstreaker": "",
+          "spell": "",
+          "parts": null,
+          "html": null,
+          "user": "76561198111111111",
+          "state": 1
         }
-      ],
-      "totalPrice": 150000,
-      "status": 0,
-      "timestamp": "1706745600",
-      "expiresAt": "1706832000"
-    }
-  ]
+      }
+    ]
+  }
 }
 ```
 
@@ -65,7 +85,7 @@ Returns trade offers that the authenticated user has sent to other users.
 
 ### Response
 
-Same format as received offers, but from the perspective of the sender.
+Same format as received offers, but from the perspective of the sender. Note: Currently returns an empty string instead of the offers array.
 
 ---
 
@@ -104,19 +124,7 @@ Creates a new trade offer to purchase items from another user.
 {
   "status": "success",
   "data": {
-    "offerId": 67890,
-    "items": [
-      {
-        "backpackId": 12345,
-        "price": 150000
-      },
-      {
-        "backpackId": 12346,
-        "price": 100000
-      }
-    ],
-    "totalPrice": 250000,
-    "expiresAt": "1706832000"
+    "message": "Offer created successfully"
   }
 }
 ```
@@ -165,9 +173,7 @@ Accepts a received trade offer.
 {
   "status": "success",
   "data": {
-    "offerId": 12345,
-    "tradeId": "987654321",
-    "message": "Offer accepted, trade initiated"
+    "message": "Offer accepted successfully"
   }
 }
 ```
@@ -204,8 +210,7 @@ Declines a received trade offer.
 {
   "status": "success",
   "data": {
-    "offerId": 12345,
-    "message": "Offer declined"
+    "message": "Offer declined successfully"
   }
 }
 ```
@@ -242,9 +247,7 @@ Cancels a sent offer (only available for offers you created).
 {
   "status": "success",
   "data": {
-    "offerId": 12345,
-    "message": "Offer cancelled",
-    "refundedBalance": 150000
+    "message": "Offer removed successfully"
   }
 }
 ```

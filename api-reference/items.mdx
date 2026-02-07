@@ -21,75 +21,160 @@ Returns full item details from the `items` table. You can pass either a numeric 
 
 ```json
 {
-  "status": "success",
-  "data": {
-    "id": 12345,
-    "name": "Unusual Burning Flames Team Captain",
-    "effect": "Burning Flames",
-    "url": "unusual-burning-flames-team-captain",
-    "game": 440,
-    "quality": "Unusual",
-    "image": "https://...",
-    "type": "Cosmetic",
-    "craftable": 1,
-    "deal": 150000
+  "err": false,
+  "success": true,
+  "content": {
+    "informations": {
+      "id": 101869,
+      "name": "Souvenir M4A1-S | Imminent Danger (Field-Tested)",
+      "effect": "",
+      "SKU": "",
+      "quality": "Souvenir;",
+      "type": "Rifle",
+      "type_steam": null,
+      "class": null,
+      "image": "-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpou-6kejhz2v_Nfz5H_uOxh7-Gw_alDK3UhH9Y78pOh-zF_Jn4t1i1uRQ5fWv3IYCXewE9Y16F-lO5kOrq0ZS86ZnMyndg6CZx4XzfnR22gBgaPLdxxavJlxkVjNA",
+      "imagePertinence": 1,
+      "craftable": 1,
+      "rarity": "Covert",
+      "featured": 0,
+      "deal": 71708,
+      "t": null,
+      "color": "ffd700",
+      "game": 730,
+      "slot": "",
+      "hero": null,
+      "weapon": "M4A1-S",
+      "exterior": "Field-Tested",
+      "url": "730-souvenir-m4a1-s-imminent-danger-field-tested",
+      "description": null,
+      "tf2shop": null
+    }
   }
 }
 ```
 
-### Item type
+### Item Fields
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `id` | integer | Unique item ID |
 | `name` | string | Item display name |
 | `effect` | string | Unusual effect name (TF2) or empty |
-| `url` | string | URL-friendly slug |
-| `game` | integer | Game App ID (`440`, `730`, `570`, `252490`) |
-| `quality` | string | Item quality (Unique, Strange, Unusual, etc.) |
-| `image` | string | Item image URL |
+| `SKU` | string | Stock Keeping Unit identifier |
+| `quality` | string | Item quality (Unique, Strange, Unusual, Souvenir, etc.) |
 | `type` | string | Item type/category |
+| `type_steam` | string/null | Steam-specific type |
+| `class` | string/null | Item class (TF2) |
+| `image` | string | Item image URL/path |
+| `imagePertinence` | integer | Image relevance score |
 | `craftable` | integer | `1` = craftable, `0` = uncraftable |
+| `rarity` | string | Item rarity (CS:GO/CS2) |
+| `featured` | integer | `1` if featured, `0` otherwise |
 | `deal` | integer | Steam market price in cents |
+| `t` | any/null | Additional data |
+| `color` | string | Hex color code for rarity |
+| `game` | integer | Game App ID (`440`, `730`, `570`, `252490`) |
+| `slot` | string | Equipment slot (TF2) |
+| `hero` | string/null | Hero name (Dota 2) |
+| `weapon` | string | Weapon name (CS:GO/CS2) |
+| `exterior` | string | Wear condition (CS:GO/CS2) |
+| `url` | string | URL-friendly slug |
+| `description` | string/null | Item description |
+| `tf2shop` | any/null | TF2 shop related data |
 
 ---
 
 ## Get item sales graph
 
 ```
-GET /item/salesGraph/{item}
+GET /item/salesGraph/{item}?period={period}
 ```
 
 **Permission:** Connected + API
 
 <ParamField path="item" type="string" required>
-  Item identifier
+  Item identifier (numeric ID)
 </ParamField>
 
-Returns historical sales data for charting. Data is aggregated from the `items_stats` table with daily price and volume.
+<ParamField query="period" type="string" required>
+  Time period for sales data: `1M`, `3M`, `6M`, `1Y`, `5Y`, or `ALL`
+</ParamField>
 
-### Response
+Returns historical sales data for charting. Data is aggregated from the `items_stats` table with daily price and volume. For periods `5Y` and `ALL`, data is grouped by week instead of by day.
+
+### Query Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `period` | string | Yes | Time period: `1M` (1 month), `3M` (3 months), `6M` (6 months), `1Y` (1 year), `5Y` (5 years), `ALL` (all time) |
+
+### Response (Daily data for 1M, 3M, 6M, 1Y)
 
 ```json
 {
   "status": "success",
-  "data": [
-    {
-      "itemid": 12345,
-      "date": "2025-01-15",
-      "price": 50000,
-      "nb": 3
-    }
-  ]
+  "data": {
+    "values": [
+      {
+        "date": "2025-01-15 00:00:00",
+        "price": 50000,
+        "nb": 3
+      },
+      {
+        "date": "2025-01-14 00:00:00",
+        "price": 48000,
+        "nb": 2
+      }
+    ]
+  }
 }
 ```
 
+### Response (Weekly data for 5Y and ALL)
+
+```json
+{
+  "status": "success",
+  "data": {
+    "values": [
+      {
+        "first_date": "2025-01-13",
+        "week": "202502",
+        "total_price": 150000,
+        "total_nb": 8
+      },
+      {
+        "first_date": "2025-01-06",
+        "week": "202501",
+        "total_price": 120000,
+        "total_nb": 6
+      }
+    ]
+  }
+}
+```
+
+### Response Fields (Daily)
+
 | Field | Type | Description |
 |-------|------|-------------|
-| `itemid` | integer | Item ID |
-| `date` | string | Date (YYYY-MM-DD) |
+| `date` | string | Date and time (YYYY-MM-DD HH:MM:SS) |
 | `price` | integer | Total sales value in cents for the day |
 | `nb` | integer | Number of sales that day |
+
+### Response Fields (Weekly)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `first_date` | string | First day of the week (Monday) |
+| `week` | string | Year and week number (YYYYWW) |
+| `total_price` | integer | Total sales value in cents for the week |
+| `total_nb` | integer | Number of sales that week |
+
+<Info>
+  Use daily data (`1M`, `3M`, `6M`, `1Y`) for detailed graphs. Use weekly data (`5Y`, `ALL`) for long-term trends to reduce data points.
+</Info>
 
 ---
 
@@ -116,12 +201,21 @@ Returns the number of active listings for an item. If `userid` is provided, retu
 
 ```json
 {
-  "status": "success",
-  "data": {
-    "nb": 42
+  "err": false,
+  "success": true,
+  "content": {
+    "count": 13291
   }
 }
 ```
+
+### Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `err` | boolean | Error flag (false if no error) |
+| `success` | boolean | Success flag (true if successful) |
+| `content.count` | integer | Number of active listings for the item |
 
 ---
 
@@ -311,15 +405,6 @@ GET /item/cs/details/fromid/{backpackid}
 </ParamField>
 
 Same as above but specifically for CS2 items with wear, sticker, and pattern information.
+ 
 
----
-
-## Get raffle items
-
-```
-GET /item/getRaffleItems
-```
-
-**Permission:** Connected + API
-
-Returns all items in the connected user's inventory (state = 0) that can be used to create giveaways. Includes full item details with inspection values.
+ 

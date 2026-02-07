@@ -19,8 +19,7 @@ Terminates the current user session and invalidates the JWT token.
 {
   "status": "success",
   "data": {
-    "disconnect": true,
-    "message": "Session terminated successfully"
+    "disconnect": true
   }
 }
 ```
@@ -43,7 +42,6 @@ Terminates all active sessions for the authenticated user across all devices.
 {
   "status": "success",
   "data": {
-    "sessionsTerminated": 5,
     "message": "All sessions have been disconnected successfully"
   }
 }
@@ -75,7 +73,6 @@ Terminates a specific session by its ID. You can get session IDs from the IP/ses
 {
   "status": "success",
   "data": {
-    "sessionId": 12345,
     "message": "Session disconnected successfully"
   }
 }
@@ -99,23 +96,21 @@ Returns detailed information about the authenticated user's account.
 {
   "status": "success",
   "data": {
-    "steamId": "76561198000000000",
-    "personaName": "PlayerName",
-    "avatar": "https://avatars.steamstatic.com/...",
-    "profileUrl": "https://steamcommunity.com/profiles/76561198000000000",
-    "country": "US",
-    "balance": 250000,
-    "email": "user@example.com",
-    "emailVerified": true,
-    "twoFactorEnabled": true,
-    "tradeUrl": "https://steamcommunity.com/tradeoffer/new/?partner=...",
-    "createdAt": "1640000000",
-    "lastLogin": "1706745600",
-    "permissions": {
-      "canTrade": true,
-      "canDeposit": true,
-      "canWithdraw": true,
-      "canCashout": true
+    "informations": {
+      "steamId": "76561198000000000",
+      "balance": 250000,
+      "skrill": "user@example.com",
+      "tradeurl": "https://steamcommunity.com/tradeoffer/new/?partner=...",
+      "since": "1640000000",
+      "image": "https://avatars.steamstatic.com/...",
+      "2fa": "true",
+      "name": "PlayerName",
+      "lastactivity": "1706745600",
+      "discordtag": "username#1234",
+      "discord": "123456789012345678",
+      "shorturl": "customurl",
+      "message": "",
+      "notification": 1
     }
   }
 }
@@ -139,10 +134,7 @@ Returns the current balance and reserved balance for the authenticated user.
 {
   "status": "success",
   "data": {
-    "balance": 250000,
-    "reservedBalance": 45000,
-    "availableBalance": 205000,
-    "currency": "USD"
+    "balance": 250000
   }
 }
 ```
@@ -152,9 +144,6 @@ Returns the current balance and reserved balance for the authenticated user.
 | Field | Type | Description |
 |-------|------|-------------|
 | `balance` | integer | Total balance in cents |
-| `reservedBalance` | integer | Balance reserved for pending offers and buy orders |
-| `availableBalance` | integer | Available balance for new transactions |
-| `currency` | string | Currency code (always "USD") |
 
 ---
 
@@ -192,18 +181,16 @@ Retrieves a paginated list of login sessions with IP information, location, and 
       {
         "id": 12345,
         "ip": "192.168.1.1",
+        "user": "76561198000000000",
         "location": "US: New York",
         "isp": "Provider Name",
         "current": true,
         "userAgent": "Mozilla/5.0...",
         "timestamp": "1706745600",
-        "lastActivity": "1706749200",
-        "expiresAt": "1709423600"
+        "expire": "1709423600"
       }
     ],
-    "count": 25,
-    "page": 0,
-    "perpage": 10
+    "count": 25
   }
 }
 ```
@@ -230,9 +217,7 @@ Returns the user's registered contact email address.
 {
   "status": "success",
   "data": {
-    "email": "user@example.com",
-    "verified": true,
-    "verifiedAt": "1640000000"
+    "address": "user@example.com"
   }
 }
 ```
@@ -265,52 +250,15 @@ Returns recent notifications for the authenticated user.
 {
   "status": "success",
   "data": {
-    "notifications": [
-      {
-        "id": 98765,
-        "type": "trade_completed",
-        "title": "Trade Completed",
-        "message": "Your withdrawal trade has been completed",
-        "read": false,
-        "timestamp": "1706745600",
-        "data": {
-          "tradeId": "123456789"
-        }
-      },
-      {
-        "id": 98764,
-        "type": "buyorder_filled",
-        "title": "Buy Order Filled",
-        "message": "Your buy order for Unusual Team Captain has been filled",
-        "read": true,
-        "timestamp": "1706742000",
-        "data": {
-          "buyOrderId": 12345,
-          "itemId": 5678
-        }
-      }
-    ],
-    "unreadCount": 3,
-    "total": 47
+    "count": 3,
+    "paymentReviews": 1
   }
 }
 ```
 
-### Notification Types
+### Notification Fields
 
-| Type | Description |
-|------|-------------|
-| `trade_completed` | A trade has been completed |
-| `trade_failed` | A trade has failed |
-| `offer_received` | You received a new trade offer |
-| `offer_accepted` | Your offer was accepted |
-| `offer_declined` | Your offer was declined |
-| `buyorder_filled` | Your buy order was filled |
-| `item_sold` | One of your items was sold |
-| `deposit_completed` | Your deposit trade was completed |
-| `withdrawal_ready` | Your withdrawal is ready |
-| `balance_added` | Balance was added to your account |
-
-<Info>
-  Notifications are automatically marked as read after 7 days if not manually marked.
-</Info>
+| Field | Type | Description |
+|-------|------|-------------|
+| `count` | integer | Number of unread notifications/alerts |
+| `paymentReviews` | integer | Number of unread payment reviews |

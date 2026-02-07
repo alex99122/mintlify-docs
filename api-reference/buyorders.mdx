@@ -43,12 +43,7 @@ Creates a buy order for a specific item at a specified price.
 {
   "status": "success",
   "data": {
-    "buyOrderId": 98765,
-    "itemId": 12345,
-    "price": 15000,
-    "quantity": 3,
-    "totalReserved": 45000,
-    "timestamp": "1706745600"
+    "details": "Inserted"
   }
 }
 ```
@@ -107,13 +102,7 @@ Updates an existing buy order's price or quantity.
 ```json Success
 {
   "status": "success",
-  "data": {
-    "buyOrderId": 98765,
-    "newPrice": 16000,
-    "newQuantity": 5,
-    "balanceAdjustment": 35000,
-    "message": "Buy order updated successfully"
-  }
+  "data": "Buy order updated"
 }
 ```
 
@@ -153,9 +142,7 @@ Cancels and removes a buy order, releasing the reserved balance.
 {
   "status": "success",
   "data": {
-    "buyOrderId": 98765,
-    "refundedBalance": 80000,
-    "message": "Buy order removed successfully"
+    "details": "Removed"
   }
 }
 ```
@@ -181,18 +168,16 @@ Returns all active buy orders for a specific item created by the authenticated u
 ```json
 {
   "status": "success",
-  "data": [
-    {
+  "data": {
+    "informations": {
       "id": 98765,
-      "itemId": 12345,
+      "steamid": "76561198000000000",
+      "itemid": 12345,
       "price": 15000,
-      "quantity": 3,
-      "quantityFilled": 1,
-      "quantityRemaining": 2,
-      "totalReserved": 30000,
+      "amount": 3,
       "timestamp": "1706745600"
     }
-  ]
+  }
 }
 ```
 
@@ -201,12 +186,10 @@ Returns all active buy orders for a specific item created by the authenticated u
 | Field | Type | Description |
 |-------|------|-------------|
 | `id` | integer | Buy order ID |
-| `itemId` | integer | Item ID |
+| `steamid` | string | User's Steam ID |
+| `itemid` | integer | Item ID |
 | `price` | integer | Buy order price in cents |
-| `quantity` | integer | Original quantity |
-| `quantityFilled` | integer | Number of items already purchased |
-| `quantityRemaining` | integer | Number of items still needed |
-| `totalReserved` | integer | Total balance reserved for remaining quantity |
+| `amount` | integer | Quantity of items to buy |
 | `timestamp` | string | Unix timestamp of creation |
 
 ---
@@ -237,19 +220,25 @@ Returns all active buy orders for the authenticated user across all items.
 {
   "status": "success",
   "data": {
-    "buyOrders": [
+    "values": [
       {
         "id": 98765,
-        "itemId": 12345,
-        "itemName": "Unusual Team Captain",
+        "steamid": "76561198000000000",
+        "itemid": 12345,
         "price": 15000,
-        "quantity": 3,
-        "quantityRemaining": 2
+        "amount": 3,
+        "timestamp": "1706745600",
+        "name": "Team Captain",
+        "effect": "Burning Flames",
+        "url": "unusual_team_captain",
+        "game": 440,
+        "quality": "Unusual",
+        "image": "https://...",
+        "type": "Hat",
+        "craftable": 1
       }
     ],
-    "total": 15,
-    "page": 0,
-    "perpage": 20
+    "count": 15
   }
 }
 ```

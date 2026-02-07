@@ -19,15 +19,9 @@ Generates a new 2FA secret and QR code for the user to set up two-factor authent
 {
   "status": "success",
   "data": {
-    "secret": "JBSWY3DPEHPK3PXP",
-    "qrCode": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
-    "backupCodes": [
-      "12345678",
-      "87654321",
-      "11223344",
-      "44332211"
-    ],
-    "message": "Scan the QR code with your authenticator app and validate with a code to enable 2FA"
+    "qrCode": "https://chart.googleapis.com/chart?chs=200x200&chld=M|0&cht=qr&chl=...",
+    "base32": "JBSWY3DPEHPK3PXP",
+    "key": "randomGeneratedKey123"
   }
 }
 ```
@@ -36,13 +30,9 @@ Generates a new 2FA secret and QR code for the user to set up two-factor authent
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `secret` | string | TOTP secret key (for manual entry) |
-| `qrCode` | string | Base64-encoded QR code image |
-| `backupCodes` | array | One-time use backup codes for account recovery |
-
-<Warning>
-  Save the backup codes in a secure location. They can be used to access your account if you lose access to your authenticator app.
-</Warning>
+| `qrCode` | string | QR code URL for scanning with authenticator app |
+| `base32` | string | TOTP secret key (for manual entry) |
+| `key` | string | Random key component |
 
 ---
 
@@ -59,37 +49,33 @@ Validates a 2FA code and enables 2FA for the account (if setting up) or validate
 ### Body Parameters
 
 <ParamField body="code" type="string" required>
-  6-digit TOTP code from authenticator app or backup code
+  6-digit TOTP code from authenticator app
+</ParamField>
+
+<ParamField body="secret" type="string" required>
+  The secret key received from `/user/2FA/create`
+</ParamField>
+
+<ParamField body="email" type="string" required>
+  Backup email for 2FA recovery
 </ParamField>
 
 ### Request Example
 
 ```json
 {
-  "code": "123456"
+  "code": "123456",
+  "secret": "randomGeneratedKey123",
+  "email": "backup@example.com"
 }
 ```
 
 ### Response
 
-```json Success (Setup)
+```json Success
 {
   "status": "success",
-  "data": {
-    "twoFactorEnabled": true,
-    "message": "Two-factor authentication enabled successfully"
-  }
-}
-```
-
-```json Success (Session Validation)
-{
-  "status": "success",
-  "data": {
-    "validated": true,
-    "validUntil": "1706832000",
-    "message": "2FA validated for this session"
-  }
+  "data": "2FA activated"
 }
 ```
 

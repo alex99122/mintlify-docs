@@ -20,39 +20,39 @@ Returns an array of trades with status = 0 (pending).
 ```json
 {
   "status": "success",
-  "data": [
-    {
-      "id": 123456,
-      "user": "76561198000000000",
-      "tradeId": "987654321",
-      "status": 0,
-      "type": "deposit",
-      "bot": "mannco_bot_1",
-      "timestamp": "1706745600",
-      "items": [
-        {
-          "assetId": "123456789",
-          "name": "Unusual Team Captain",
-          "price": 150000
-        }
-      ]
-    }
-  ]
+  "data": {
+    "trades": [
+      {
+        "id": 123456,
+        "items_received": "123456789,987654321",
+        "status": 0,
+        "items_send": "",
+        "user": "76561198000000000",
+        "bot": "76561198111111111",
+        "code": "ABCDEFGH",
+        "lasterror": "",
+        "offerid": "5678901234",
+        "timestamp": "1706745600000"
+      }
+    ]
+  }
 }
 ```
 
-### Trade type
+### Trade Fields
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `id` | integer | Internal trade ID |
 | `user` | string | User's Steam ID |
-| `tradeId` | string | Steam trade offer ID |
-| `status` | integer | Trade status (0 = pending, 3 = completed, -1 = failed) |
-| `type` | string | Trade type (`deposit`, `withdrawal`, `purchase`) |
+| `items_received` | string | Comma-separated assetIds being received |
+| `items_send` | string | Comma-separated assetIds being sent |
+| `status` | integer | Trade status (0 = pending, 3 = completed, -1 = failed, etc.) |
 | `bot` | string | Bot Steam ID |
-| `timestamp` | string | Unix timestamp |
-| `items` | array | Array of items in the trade |
+| `offerid` | string | Steam trade offer ID |
+| `timestamp` | string | Unix timestamp in milliseconds |
+| `code` | string | Trade verification code |
+| `lasterror` | string | Last error message if failed |
 
 ---
 
@@ -91,16 +91,18 @@ Returns paginated array of all trades.
     "trades": [
       {
         "id": 123456,
-        "user": "76561198000000000",
-        "tradeId": "987654321",
+        "items_received": "123456789",
         "status": 3,
-        "type": "deposit",
-        "timestamp": "1706745600"
+        "items_send": "",
+        "user": "76561198000000000",
+        "bot": "76561198111111111",
+        "code": "COMPLETED",
+        "game": 440,
+        "lasterror": "",
+        "offerid": "5678901234",
+        "timestamp": "1706745600000"
       }
-    ],
-    "total": 156,
-    "page": 0,
-    "perpage": 20
+    ]
   }
 }
 ```
@@ -123,8 +125,9 @@ Resends a failed or cancelled trade offer for the authenticated user. The system
 {
   "status": "success",
   "data": {
-    "tradeId": "123456789",
-    "message": "Trade offer resent successfully"
+    "message": "Trade resent successfully",
+    "trade_id": 123456,
+    "code": "ABCDEFGH"
   }
 }
 ```

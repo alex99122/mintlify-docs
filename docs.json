@@ -20,16 +20,6 @@
     "decoration": "gradient"
   },
   "favicon": "/favicon.svg",
-  "seo": {
-    "indexing": "all"
-  },
-  "metadata": {
-    "og:site_name": "Mannco.store API Documentation",
-    "og:type": "website",
-    "og:locale": "en_US",
-    "twitter:card": "summary_large_image",
-    "twitter:site": "@manncostore"
-  },
   "navigation": {
     "tabs": [
       {
@@ -38,114 +28,59 @@
           {
             "group": "Getting Started",
             "pages": [
-              "index"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "API Reference",
-        "groups": [
-          {
-            "group": "Overview",
-            "pages": [
-              "api-reference/introduction"
-            ]
-          },
-          {
-            "group": "Authentication",
-            "pages": [
+              "index",
+              "api-reference/introduction",
               "api-reference/authentication"
             ]
           },
           {
-            "group": "Items",
+            "group": "🛒 Buyer - Purchasing",
             "pages": [
-              "api-reference/items"
+              "api-reference/items",
+              "api-reference/offers",
+              "api-reference/buyorders",
+              "api-reference/payment"
             ]
           },
           {
-            "group": "Inventory",
+            "group": "🛒 Buyer - Inventory",
             "pages": [
               "api-reference/inventory"
             ]
           },
           {
-            "group": "Trades",
-            "pages": [
-              "api-reference/trades"
-            ]
-          },
-          {
-            "group": "Offers",
-            "pages": [
-              "api-reference/offers"
-            ]
-          },
-          {
-            "group": "Buy Orders",
-            "pages": [
-              "api-reference/buyorders"
-            ]
-          },
-          {
-            "group": "Deposit",
+            "group": "💰 Seller - Listing",
             "pages": [
               "api-reference/deposit"
             ]
           },
           {
-            "group": "User Account",
-            "pages": [
-              "api-reference/user-account"
-            ]
-          },
-          {
-            "group": "User Settings",
-            "pages": [
-              "api-reference/user-settings"
-            ]
-          },
-          {
-            "group": "Two-Factor Authentication",
-            "pages": [
-              "api-reference/user-2fa"
-            ]
-          },
-          {
-            "group": "Email Management",
-            "pages": [
-              "api-reference/user-email"
-            ]
-          },
-          {
-            "group": "User History",
-            "pages": [
-              "api-reference/user-history"
-            ]
-          },
-          {
-            "group": "Cashout",
+            "group": "💰 Seller - Sales & Cashout",
             "pages": [
               "api-reference/cashout"
             ]
           },
           {
-            "group": "Payment",
+            "group": "🔄 Trading (Buyer & Seller)",
             "pages": [
-              "api-reference/payment"
+              "api-reference/trades"
             ]
           },
           {
-            "group": "Utilities",
+            "group": "👤 User Account",
             "pages": [
+              "api-reference/user-account",
+              "api-reference/user-settings",
+              "api-reference/user-2fa",
+              "api-reference/user-email",
+              "api-reference/user-history"
+            ]
+          },
+          {
+            "group": "📊 Public & Utilities",
+            "pages": [
+              "api-reference/public-data",
               "api-reference/utils"
-            ]
-          },
-          {
-            "group": "Public Data",
-            "pages": [
-              "api-reference/public-data"
             ]
           }
         ]

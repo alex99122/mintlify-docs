@@ -23,23 +23,23 @@ Returns pricing information and available items from the user's Steam inventory 
 {
   "status": "success",
   "data": {
-    "items": [
+    "informations": [
       {
-        "assetId": "123456789",
-        "classId": "987654321",
-        "instanceId": "0",
-        "name": "Unusual Burning Flames Team Captain",
-        "marketName": "Unusual Team Captain",
-        "icon": "https://...",
-        "marketable": 1,
-        "tradable": 1,
+        "assetid": "123456789",
+        "market_hash_name": "Unusual Burning Flames Team Captain",
+        "unusual": "Burning Flames",
+        "craft": "",
+        "spell": "",
+        "sheen": "",
+        "killstreaker": "",
+        "image": "https://...",
+        "class": "Hat",
+        "quality": "Unusual",
+        "depositkey": "12345_0",
         "price": 150000,
-        "suggested_price": 145000,
-        "accepted": true
+        "disabled": ""
       }
-    ],
-    "steamInventoryUrl": "https://steamcommunity.com/profiles/.../inventory",
-    "totalValue": 450000
+    ]
   }
 }
 ```
@@ -48,18 +48,20 @@ Returns pricing information and available items from the user's Steam inventory 
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `assetId` | string | Steam asset ID |
-| `classId` | string | Steam class ID |
-| `name` | string | Item display name |
-| `marketName` | string | Steam Market name |
+| `assetid` | string | Steam asset ID |
+| `market_hash_name` | string | Steam Market name |
+| `unusual` | string | Unusual effect name (if applicable) |
+| `craft` | string | "uncraftable " if not craftable, empty otherwise |
+| `spell` | string | Spell names separated by semicolons |
+| `sheen` | string | Sheen effect |
+| `killstreaker` | string | Killstreaker effect |
 | `price` | integer | Mannco.store buy price in cents |
-| `suggested_price` | integer | Suggested listing price in cents |
-| `accepted` | boolean | Whether the item is accepted for deposit |
-| `tradable` | integer | 1 if tradable, 0 if trade locked |
-| `marketable` | integer | 1 if marketable on Steam |
+| `disabled` | string | Reason if item is not accepted (e.g., "blacklist", "highstock") |
+| `depositkey` | string | Unique identifier for the deposit item |
+| `image` | string | Item image URL |
 
 <Info>
-  Only items that are tradable, marketable, and have a valid price will have `accepted: true`.
+  Only items that are tradable and have a valid price will have a non-empty `depositkey`. Items with `disabled` field set cannot be deposited.
 </Info>
 
 ---

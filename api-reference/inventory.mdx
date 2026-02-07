@@ -20,21 +20,28 @@ Returns an array of backpack items with state = 1 (on sale), including full item
 ```json
 {
   "status": "success",
-  "data": [
-    {
-      "id": 12345,
-      "assetId": "987654321",
-      "item_id": 5678,
-      "user": "76561198000000000",
-      "state": 1,
-      "price": 15000,
-      "bot": "mannco_bot_1",
-      "game": 440,
-      "name": "Unusual Burning Flames Team Captain",
-      "image": "https://...",
-      "quality": "Unusual"
-    }
-  ]
+  "data": {
+    "items": [
+      {
+        "ids": "987654321,987654322",
+        "count": 2,
+        "item_id": 5678,
+        "assetId": "987654321",
+        "bot": "76561198000000001",
+        "game": 440,
+        "state": 1,
+        "price": 15000,
+        "name": "Unusual Burning Flames Team Captain",
+        "effect": "Burning Flames",
+        "url": "unusual_team_captain",
+        "quality": "Unusual",
+        "image": "https://...",
+        "type": "Hat",
+        "craftable": 1
+      }
+    ],
+    "count": 25
+  }
 }
 ```
 
@@ -57,19 +64,27 @@ Returns an array of backpack items with state = 0, including full item details a
 ```json
 {
   "status": "success",
-  "data": [
-    {
-      "id": 12346,
-      "assetId": "987654322",
-      "item_id": 5679,
-      "user": "76561198000000000",
-      "state": 0,
-      "bot": "mannco_bot_1",
-      "game": 440,
-      "name": "Strange Shotgun",
-      "image": "https://..."
-    }
-  ]
+  "data": {
+    "items": [
+      {
+        "ids": "987654322",
+        "count": 1,
+        "item_id": 5679,
+        "assetId": "987654322",
+        "bot": "76561198000000001",
+        "game": 440,
+        "state": 0,
+        "name": "Strange Shotgun",
+        "effect": "",
+        "url": "strange_shotgun",
+        "quality": "Strange",
+        "image": "https://...",
+        "type": "Weapon",
+        "craftable": 1
+      }
+    ],
+    "count": 10
+  }
 }
 ```
 
@@ -105,12 +120,19 @@ Initiates a trade offer to withdraw items from the user's Mannco.store inventory
 {
   "status": "success",
   "data": {
-    "tradeId": "123456789",
-    "tradeUrl": "https://steamcommunity.com/tradeoffer/...",
-    "message": "Trade offer sent successfully"
+    "message": "Items withdrawal processed",
+    "updated": 3,
+    "locked": 0
   }
 }
 ```
+
+### Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `updated` | integer | Number of items successfully marked for withdrawal |
+| `locked` | integer | Number of items that couldn't be withdrawn (locked in trades) |
 
 ### Error Responses
 
