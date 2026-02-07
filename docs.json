@@ -16,7 +16,8 @@
     "color": {
       "light": "#021214",
       "dark": "#021214"
-    }
+    },
+    "decoration": "gradient"
   },
   "favicon": "/favicon.svg",
   "seo": {
