@@ -5,7 +5,7 @@ description: "Complete API reference for the Mannco.store TF2, CS2, Dota 2 & Rus
 
 ## Welcome
 
-Mannco.store is a marketplace for trading Steam items across multiple games including **Team Fortress 2** (440), **Counter-Strike 2** (730), **Dota 2** (570), and **Rust** (252490). This documentation covers the complete REST API.
+Mannco.store is a marketplace for trading Steam items across multiple games including **Team Fortress 2** (440), **Counter-Strike 2** (730), **Dota 2** (570), and **Rust** (252490). This documentation covers the REST API with **API key authentication**.
 
 <Card
   title="API Introduction"
@@ -13,47 +13,75 @@ Mannco.store is a marketplace for trading Steam items across multiple games incl
   href="/api-reference/introduction"
   horizontal
 >
-  Learn about authentication, base URL, error handling, and permissions.
+  Learn about API key authentication, base URL, error handling, and permissions.
+</Card>
+
+## Quick Start
+
+1. **Get your API Key** from your Mannco.store account settings
+2. **Authenticate** using `POST /user/login` with your API key
+3. **Receive JWT token** to use for all subsequent API calls
+4. **Make API calls** with your JWT token
+
+<Card
+  title="Authentication Guide"
+  icon="key"
+  href="/api-reference/authentication"
+  horizontal
+>
+  Learn how to authenticate with your API key and obtain a JWT token.
 </Card>
 
 ## API Categories
 
 <Columns cols={2}>
+  <Card title="Authentication" icon="key" href="/api-reference/authentication">
+    API key login and JWT token management.
+  </Card>
   <Card title="Items" icon="box" href="/api-reference/items">
     Browse item details, listings, pricing, sales graphs, and buy order lists.
   </Card>
   <Card title="Inventory" icon="warehouse" href="/api-reference/inventory">
-    Manage your on-site inventory: list items for sale, withdraw, and more.
+    View items on sale, items in inventory, and withdraw items.
   </Card>
   <Card title="Trades" icon="right-left" href="/api-reference/trades">
-    Track active and historical Steam trades.
+    View active and historical Steam trades, resend trade offers.
   </Card>
   <Card title="Offers" icon="handshake" href="/api-reference/offers">
-    Create, accept, decline, and manage price offers on items.
+    Create, accept, decline, and manage trade offers between users.
   </Card>
   <Card title="Buy Orders" icon="cart-shopping" href="/api-reference/buyorders">
-    Place, update, and remove buy orders for items.
+    Create, update, and remove buy orders for items.
   </Card>
   <Card title="Deposit" icon="arrow-down-to-bracket" href="/api-reference/deposit">
     Deposit Steam items onto the platform for selling.
   </Card>
-  <Card title="User" icon="user" href="/api-reference/user/authentication">
-    Authentication, account info, settings, 2FA, email, and history.
+  <Card title="User Account" icon="user" href="/api-reference/user-account">
+    Account info, balance, session management, and notifications.
   </Card>
-  <Card title="Giveaways" icon="gift" href="/api-reference/giveaways">
-    Create and participate in community giveaways.
+  <Card title="User Settings" icon="gear" href="/api-reference/user-settings">
+    Manage email notifications, privacy, trade URL, and profile settings.
   </Card>
-  <Card title="Support" icon="headset" href="/api-reference/support">
-    Create and manage support tickets.
+  <Card title="Two-Factor Auth" icon="shield" href="/api-reference/user-2fa">
+    Set up and manage 2FA for enhanced account security.
+  </Card>
+  <Card title="Email Management" icon="envelope" href="/api-reference/user-email">
+    Change and validate email addresses.
+  </Card>
+  <Card title="User History" icon="clock-rotate-left" href="/api-reference/user-history">
+    View sales statistics, balance, purchase, sales, and transaction history.
   </Card>
   <Card title="Cashout" icon="money-bill-wave" href="/api-reference/cashout">
-    Withdraw your balance via PayPal, Payoneer, or Tipalti.
+    Withdraw your balance via Payoneer or Tipalti.
   </Card>
-  <Card title="Cart & Payment" icon="credit-card" href="/api-reference/cart">
-    Bulk add items to cart and process payments.
+  <Card title="Payment" icon="credit-card" href="/api-reference/payment">
+    Create payment deposits to add balance to your account.
   </Card>
   <Card title="Utilities" icon="wrench" href="/api-reference/utils">
-    Bot info, trade URL check, in-game inspection, and more.
+    Trade URL validation, bot information, and platform details.
+  </Card>
+  <Card title="Public Data" icon="chart-line" href="/api-reference/public-data">
+    Access public pricing data and recent sales information.
   </Card>
 </Columns>
 
@@ -65,3 +93,17 @@ Mannco.store is a marketplace for trading Steam items across multiple games incl
 | Counter-Strike 2 | `730` | Skins, stickers, keychains, wear values |
 | Dota 2 | `570` | Cosmetics, arcanas, immortals |
 | Rust | `252490` | Skins and cosmetics |
+
+## API Key Authentication
+
+This API uses **API key authentication** instead of session-based authentication. All endpoints require a valid JWT token obtained by authenticating with your API key.
+
+<Note>
+  This documentation covers only the API endpoints that require the `api` permission filter, plus the `POST /user/login` endpoint for authentication.
+</Note>
+
+## Need Help?
+
+- **Website:** [mannco.store](https://mannco.store)
+- **Discord:** [Join our Discord](https://discord.gg/mannco)
+- **Support:** Create a ticket through the website

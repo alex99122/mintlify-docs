@@ -1,62 +1,81 @@
 ---
 title: "Utilities"
-description: "Utility endpoints for trade URL checking, bot status, SEON fraud detection, in-game inspection, and item replacement"
+description: "Utility endpoints for trade URL validation and bot information"
 ---
 
-## Check Trade URL
-
-<Card title="GET /utils/tradeurlCheck" icon="circle-check">
-  Validates the user's Steam trade URL by checking its status against Steam servers. Detects invalid URLs, trade holds, private profiles, and bans.
-</Card>
+## Check trade URL
 
 ```
 GET /utils/tradeurlCheck
 ```
 
-**Authentication:** `connected`
+**Permission:** Connected + API
 
-**Response**
+Validates a Steam trade offer URL format and checks if it's accessible.
 
-```json
+### Query Parameters
+
+<ParamField query="tradeUrl" type="string" required>
+  Steam trade offer URL to validate
+</ParamField>
+
+### Example
+
+```
+GET /utils/tradeurlCheck?tradeUrl=https://steamcommunity.com/tradeoffer/new/?partner=123456789&token=AbCdEfGh
+```
+
+### Response
+
+```json Valid URL
 {
   "status": "success",
   "data": {
-    "status": "ok"
+    "valid": true,
+    "partnerId": "123456789",
+    "token": "AbCdEfGh",
+    "steamId": "76561198083722517",
+    "message": "Trade URL is valid"
   }
 }
 ```
 
-### Status Values
+```json Invalid URL
+{
+  "status": "error",
+  "data": {
+    "valid": false,
+    "message": "Invalid trade URL format"
+  }
+}
+```
 
-| Status | Description |
-|--------|-------------|
-| `ok` | Trade URL is valid and no trade hold |
-| `invalid` | Trade URL is no longer valid |
-| `private` | User's Steam inventory is private |
-| `tradehold` | User has a trade hold active |
-| `ban` | User has a trade ban |
+### Validation Checks
 
-**Errors**
+The endpoint performs the following validations:
 
-| Status | Message |
-|--------|---------|
-| `error` | No trade URL found for this user |
+1. **Format Check:** Verifies URL starts with `https://steamcommunity.com/tradeoffer/new/`
+2. **Parameter Check:** Ensures `partner` and `token` parameters are present
+3. **Token Validation:** Validates token format (8 characters, alphanumeric)
+4. **Steam ID Conversion:** Converts partner ID to full Steam ID64
+
+<Info>
+  Use this endpoint before saving a trade URL to ensure it's valid and properly formatted.
+</Info>
 
 ---
 
-## Get Bot List
-
-<Card title="GET /utils/bots" icon="robot">
-  Retrieves a list of all bots with their game-specific capacity information.
-</Card>
+## Get bots information
 
 ```
 GET /utils/bots
 ```
 
-**Authentication:** None
+**Permission:** Public
 
-**Response**
+Returns information about all Mannco.store trading bots, including their status, capacity, and trade URLs.
+
+### Response
 
 ```json
 {
@@ -64,203 +83,119 @@ GET /utils/bots
   "data": {
     "bots": [
       {
-        "id": 1,
-        "name": "Bot-001",
-        "steamId": "76561198...",
-        "tf2_free": 500,
-        "csgo_free": 300,
-        "rust_free": 200,
-        "dota_free": 400
+        "steamId": "76561198000000001",
+        "name": "Mannco Bot #1",
+        "avatar": "https://avatars.steamstatic.com/...",
+        "online": true,
+        "games": [440, 730],
+        "capacity": 1000,
+        "currentItems": 756,
+        "availableSlots": 244,
+        "tradeUrl": "https://steamcommunity.com/tradeoffer/new/?partner=...",
+        "lastSeen": "1706745600"
+      },
+      {
+        "steamId": "76561198000000002",
+        "name": "Mannco Bot #2",
+        "avatar": "https://avatars.steamstatic.com/...",
+        "online": true,
+        "games": [440],
+        "capacity": 1000,
+        "currentItems": 823,
+        "availableSlots": 177,
+        "tradeUrl": "https://steamcommunity.com/tradeoffer/new/?partner=...",
+        "lastSeen": "1706745580"
       }
     ],
-    "count": 10
+    "totalBots": 5,
+    "onlineBots": 4,
+    "totalCapacity": 5000,
+    "totalItems": 3421,
+    "availableSlots": 1579
   }
 }
 ```
 
+### Bot Fields
+
 | Field | Type | Description |
 |-------|------|-------------|
-| `tf2_free` | integer | Available TF2 inventory slots |
-| `csgo_free` | integer | Available CS:GO inventory slots |
-| `rust_free` | integer | Available Rust inventory slots |
-| `dota_free` | integer | Available Dota 2 inventory slots |
+| `steamId` | string | Bot's Steam ID |
+| `name` | string | Bot display name |
+| `avatar` | string | Bot's Steam avatar URL |
+| `online` | boolean | Whether bot is currently online |
+| `games` | array | Game IDs the bot handles |
+| `capacity` | integer | Maximum items bot can hold |
+| `currentItems` | integer | Current number of items in bot inventory |
+| `availableSlots` | integer | Remaining capacity |
+| `tradeUrl` | string | Bot's trade offer URL |
+| `lastSeen` | string | Unix timestamp of last online check |
+
+<Info>
+  Bot information is cached for 5 minutes. The system automatically distributes items across bots based on availability and game.
+</Info>
 
 ---
 
-## Get Platform Infos
-
-<Card title="GET /utils/infos" icon="circle-info">
-  Retrieves platform status information, including Steam API availability.
-</Card>
+## Get platform information
 
 ```
 GET /utils/infos
 ```
 
-**Authentication:** None
+**Permission:** Public
 
-**Response**
+Returns general platform information including supported games, features, and statistics.
 
-```json
-{
-  "status": "success",
-  "data": {
-    "steam_down": false
-  }
-}
-```
-
-<ResponseField name="data.steam_down" type="boolean">
-  `true` if Steam is currently experiencing issues, `false` if operational.
-</ResponseField>
-
----
-
-## Replace Items
-
-<Card title="POST /utils/replaceItems" icon="arrows-rotate">
-  Processes item replacements when items in a cart become unavailable or their prices change. Finds suitable replacement items.
-</Card>
-
-```
-POST /utils/replaceItems
-```
-
-**Authentication:** `connected`
-
-**Body Parameters**
-
-<ParamField body="last" type="object" required>
-  The last known state of the cart items.
-</ParamField>
-
-<ParamField body="items" type="array" required>
-  Array of items to check and potentially replace.
-</ParamField>
-
-**Response**
+### Response
 
 ```json
 {
   "status": "success",
   "data": {
-    "data": {
-      "replaced": [],
-      "unavailable": [],
-      "priceChanged": []
+    "platform": {
+      "name": "Mannco.store",
+      "version": "2.0",
+      "uptime": 99.9,
+      "maintenance": false
+    },
+    "games": [
+      {
+        "id": 440,
+        "name": "Team Fortress 2",
+        "enabled": true,
+        "itemCount": 45678
+      },
+      {
+        "id": 730,
+        "name": "Counter-Strike 2",
+        "enabled": true,
+        "itemCount": 23456
+      }
+    ],
+    "features": {
+      "deposit": true,
+      "withdrawal": true,
+      "buyOrders": true,
+      "offers": true,
+      "cashout": true,
+      "giveaways": true
+    },
+    "stats": {
+      "totalUsers": 125000,
+      "totalItems": 89000,
+      "totalTrades": 456000,
+      "last24hVolume": 250000
+    },
+    "limits": {
+      "minDeposit": 100,
+      "maxBuyOrders": 50,
+      "maxListings": 1000
     }
   }
 }
 ```
 
----
-
-## SEON Fraud Detection
-
-<Card title="POST /utils/seon" icon="shield">
-  Saves SEON device fingerprint data for fraud detection purposes.
-</Card>
-
-```
-POST /utils/seon
-```
-
-**Authentication:** None
-
-**Body Parameters**
-
-<ParamField body="data" type="string" required>
-  SEON fingerprint data payload.
-</ParamField>
-
-**Response**
-
-```json
-{
-  "status": "success",
-  "data": {
-    "message": "SEON data saved successfully",
-    "data": "..."
-  }
-}
-```
-
----
-
-## Inspect Item In-Game
-
-<Card title="POST /utils/inspect/ingame" icon="magnifying-glass">
-  Queues an item for in-game inspection on a TF2 or CS:GO server. The user either receives an update if already connected, or a server connection link.
-</Card>
-
-```
-POST /utils/inspect/ingame
-```
-
-**Authentication:** `connected`
-
-**Body Parameters**
-
-<ParamField body="assetId" type="integer" required>
-  The asset ID of the item to inspect.
-</ParamField>
-
-<ParamField body="game" type="integer" default="440">
-  The game ID. Supported: `440` (TF2), `730` (CS:GO).
-</ParamField>
-
-**Response — User already on server**
-
-```json
-{
-  "status": "success",
-  "data": {
-    "message": "update"
-  }
-}
-```
-
-**Response — User needs to connect**
-
-```json
-{
-  "status": "success",
-  "data": {
-    "message": "server",
-    "server": "steam://connect/217.182.139.34:27015"
-  }
-}
-```
-
-**Errors**
-
-| Status | Message |
-|--------|---------|
-| `error` | You need to send the assetId |
-| `error` | Invalid game |
-| `error` | This item can't be inspected ingame now, please try again later! |
-
----
-
-## SMS Webhook
-
-<Card title="POST /utils/sms" icon="message">
-  Internal webhook for forwarding SMS messages to Discord. Used for monitoring purposes.
-</Card>
-
-```
-POST /utils/sms
-```
-
-**Authentication:** None
-
-**Body Parameters**
-
-<ParamField body="phone_number" type="string" required>Phone number.</ParamField>
-<ParamField body="sender" type="string" required>Sender identifier.</ParamField>
-<ParamField body="message" type="string" required>Message content.</ParamField>
-<ParamField body="date" type="string" required>Timestamp of the message.</ParamField>
-
-<Warning>
-  This is an internal endpoint and should not be called by external applications.
-</Warning>
+<Note>
+  Use this endpoint to check platform status and available features before making other API calls.
+</Note>

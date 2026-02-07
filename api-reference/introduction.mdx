@@ -13,18 +13,21 @@ https://mannco.store
 
 ## Authentication
 
-The API uses **session-based authentication** via Steam OpenID. Most endpoints require the user to be logged in (session cookie). Mutating requests (POST, PUT, PATCH, DELETE) additionally require a valid **CSRF token**.
+The API uses **JWT-based authentication** via API keys. You must include the JWT token in your requests.
 
-### Session flow
+### API Key Login Flow
 
-1. The user authenticates via Steam OpenID at `GET /user/login`
-2. A session cookie is set on successful authentication
-3. The session cookie must be sent with every subsequent request
-4. Retrieve a CSRF token via `GET /csrf/token` before making any write request
+1. Obtain an API key from your Mannco.store account settings
+2. Call `POST /user/login` with your API key to receive a JWT token
+3. Include the JWT token in subsequent requests (typically via cookies or Authorization header)
+
+<Note>
+  JWT tokens expire after 31 days. You'll need to re-authenticate after expiration.
+</Note>
 
 ### CSRF protection
 
-All `POST`, `PUT`, `PATCH`, and `DELETE` requests are protected by CSRF validation. You must include a valid CSRF token in your requests.
+All `POST` requests may require CSRF validation depending on the endpoint configuration.
 
 <Note>
   POST requests accept both `application/json` and `application/x-www-form-urlencoded` content types. JSON payloads are automatically decoded.
@@ -32,16 +35,15 @@ All `POST`, `PUT`, `PATCH`, and `DELETE` requests are protected by CSRF validati
 
 ## Permission levels
 
-Endpoints require specific permission levels, indicated by tags in the documentation:
+Endpoints require specific permission levels:
 
 | Permission | Description |
 |-----------|-------------|
 | **Public** | No authentication required |
-| **Connected** | User must be logged in |
+| **API** | Valid JWT token required (obtained via API key login) |
+| **Connected** | User must be authenticated |
 | **2FA** | User must have validated 2FA for the current session |
 | **Admin** | User must have admin privileges |
-| **Moderator** | User must have moderator privileges |
-| **Recaptcha** | Request must include a valid reCAPTCHA token |
 
 Many endpoints have an admin variant that accepts a `{userid}` path parameter to operate on behalf of another user.
 
@@ -71,26 +73,16 @@ Error responses follow this pattern:
 |-----------|-------------|
 | `200` | Success |
 | `401` | Not authenticated — user must log in |
-| `403` | Forbidden — insufficient permissions, invalid CSRF, or reCAPTCHA failure |
+| `403` | Forbidden — insufficient permissions, invalid CSRF, or invalid API key |
 | `404` | Endpoint not found |
 
-### Specific error pages
+### Specific error responses
 
-| Error | Trigger |
-|-------|---------|
-| `401` | Missing or invalid session (`connected` filter) |
-| `403` | Insufficient role (`admin`, `moderator`, `server`) |
-| `403 CSRF` | Invalid or missing CSRF token |
-| `403 Recaptcha` | Failed reCAPTCHA validation |
-| `2FA Required` | 2FA validation needed for this operation |
-
-## Rate limiting
-
-Some operations have built-in rate limits:
-- **Giveaway creation**: 1 per hour per user
-- **Giveaway comments**: 1 per 10 minutes per user
-- **Buy order modifications**: Tracked per day per user
-- **Email validation codes**: 1 per 5 minutes
+| Status | Message |
+|--------|---------|
+| `error` | Missing required parameter: apiKey |
+| `forbidden` | Invalid API key |
+| `forbidden` | Country blocked |
 
 ## Prices
 

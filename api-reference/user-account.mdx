@@ -1,0 +1,316 @@
+---
+title: "User Account"
+description: "User account information, balance, and session management"
+---
+
+## Disconnect (Logout)
+
+```
+GET /user/disconnect
+```
+
+**Permission:** Connected + API
+
+Terminates the current user session and invalidates the JWT token.
+
+### Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "disconnect": true,
+    "message": "Session terminated successfully"
+  }
+}
+```
+
+---
+
+## Disconnect all sessions
+
+```
+GET /user/disconnectSession/all
+```
+
+**Permission:** Connected + API
+
+Terminates all active sessions for the authenticated user across all devices.
+
+### Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "sessionsTerminated": 5,
+    "message": "All sessions have been disconnected successfully"
+  }
+}
+```
+
+<Info>
+  This is useful if you believe your account has been compromised or you want to log out from all devices at once.
+</Info>
+
+---
+
+## Disconnect session by ID
+
+```
+GET /user/disconnectSession/{id}
+```
+
+**Permission:** Connected + API
+
+<ParamField path="id" type="integer" required>
+  The session ID to disconnect
+</ParamField>
+
+Terminates a specific session by its ID. You can get session IDs from the IP/session list endpoint.
+
+### Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "sessionId": 12345,
+    "message": "Session disconnected successfully"
+  }
+}
+```
+
+---
+
+## Get user information
+
+```
+GET /user/infos
+```
+
+**Permission:** Connected + API
+
+Returns detailed information about the authenticated user's account.
+
+### Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "steamId": "76561198000000000",
+    "personaName": "PlayerName",
+    "avatar": "https://avatars.steamstatic.com/...",
+    "profileUrl": "https://steamcommunity.com/profiles/76561198000000000",
+    "country": "US",
+    "balance": 250000,
+    "email": "user@example.com",
+    "emailVerified": true,
+    "twoFactorEnabled": true,
+    "tradeUrl": "https://steamcommunity.com/tradeoffer/new/?partner=...",
+    "createdAt": "1640000000",
+    "lastLogin": "1706745600",
+    "permissions": {
+      "canTrade": true,
+      "canDeposit": true,
+      "canWithdraw": true,
+      "canCashout": true
+    }
+  }
+}
+```
+
+---
+
+## Get balance
+
+```
+GET /user/balance
+```
+
+**Permission:** Connected + API
+
+Returns the current balance and reserved balance for the authenticated user.
+
+### Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "balance": 250000,
+    "reservedBalance": 45000,
+    "availableBalance": 205000,
+    "currency": "USD"
+  }
+}
+```
+
+### Balance Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `balance` | integer | Total balance in cents |
+| `reservedBalance` | integer | Balance reserved for pending offers and buy orders |
+| `availableBalance` | integer | Available balance for new transactions |
+| `currency` | string | Currency code (always "USD") |
+
+---
+
+## Get IP / session list
+
+```
+GET /user/ipList
+```
+
+**Permission:** Connected + API
+
+Retrieves a paginated list of login sessions with IP information, location, and ISP details.
+
+### Query Parameters
+
+<ParamField query="page" type="integer" default="0">
+  Page number for pagination
+</ParamField>
+
+<ParamField query="perpage" type="integer" default="10">
+  Number of results per page (max 50)
+</ParamField>
+
+<ParamField query="expire" type="string">
+  Set to `"true"` to include expired sessions
+</ParamField>
+
+### Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "values": [
+      {
+        "id": 12345,
+        "ip": "192.168.1.1",
+        "location": "US: New York",
+        "isp": "Provider Name",
+        "current": true,
+        "userAgent": "Mozilla/5.0...",
+        "timestamp": "1706745600",
+        "lastActivity": "1706749200",
+        "expiresAt": "1709423600"
+      }
+    ],
+    "count": 25,
+    "page": 0,
+    "perpage": 10
+  }
+}
+```
+
+<ResponseField name="data.values[].current" type="boolean">
+  `true` if this is the current active session
+</ResponseField>
+
+---
+
+## Get contact email
+
+```
+GET /user/getContactMail
+```
+
+**Permission:** Connected + API
+
+Returns the user's registered contact email address.
+
+### Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "email": "user@example.com",
+    "verified": true,
+    "verifiedAt": "1640000000"
+  }
+}
+```
+
+---
+
+## Get notifications
+
+```
+GET /user/notifications
+```
+
+**Permission:** Connected + API
+
+Returns recent notifications for the authenticated user.
+
+### Query Parameters
+
+<ParamField query="unreadOnly" type="boolean" default="false">
+  Return only unread notifications
+</ParamField>
+
+<ParamField query="limit" type="integer" default="20">
+  Maximum number of notifications to return (max 100)
+</ParamField>
+
+### Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "notifications": [
+      {
+        "id": 98765,
+        "type": "trade_completed",
+        "title": "Trade Completed",
+        "message": "Your withdrawal trade has been completed",
+        "read": false,
+        "timestamp": "1706745600",
+        "data": {
+          "tradeId": "123456789"
+        }
+      },
+      {
+        "id": 98764,
+        "type": "buyorder_filled",
+        "title": "Buy Order Filled",
+        "message": "Your buy order for Unusual Team Captain has been filled",
+        "read": true,
+        "timestamp": "1706742000",
+        "data": {
+          "buyOrderId": 12345,
+          "itemId": 5678
+        }
+      }
+    ],
+    "unreadCount": 3,
+    "total": 47
+  }
+}
+```
+
+### Notification Types
+
+| Type | Description |
+|------|-------------|
+| `trade_completed` | A trade has been completed |
+| `trade_failed` | A trade has failed |
+| `offer_received` | You received a new trade offer |
+| `offer_accepted` | Your offer was accepted |
+| `offer_declined` | Your offer was declined |
+| `buyorder_filled` | Your buy order was filled |
+| `item_sold` | One of your items was sold |
+| `deposit_completed` | Your deposit trade was completed |
+| `withdrawal_ready` | Your withdrawal is ready |
+| `balance_added` | Balance was added to your account |
+
+<Info>
+  Notifications are automatically marked as read after 7 days if not manually marked.
+</Info>

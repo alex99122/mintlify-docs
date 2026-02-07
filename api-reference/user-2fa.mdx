@@ -1,0 +1,205 @@
+---
+title: "Two-Factor Authentication"
+description: "Manage 2FA settings for enhanced account security"
+---
+
+## Create 2FA
+
+```
+GET /user/2FA/create
+```
+
+**Permission:** Connected + API
+
+Generates a new 2FA secret and QR code for the user to set up two-factor authentication.
+
+### Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "secret": "JBSWY3DPEHPK3PXP",
+    "qrCode": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
+    "backupCodes": [
+      "12345678",
+      "87654321",
+      "11223344",
+      "44332211"
+    ],
+    "message": "Scan the QR code with your authenticator app and validate with a code to enable 2FA"
+  }
+}
+```
+
+### Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `secret` | string | TOTP secret key (for manual entry) |
+| `qrCode` | string | Base64-encoded QR code image |
+| `backupCodes` | array | One-time use backup codes for account recovery |
+
+<Warning>
+  Save the backup codes in a secure location. They can be used to access your account if you lose access to your authenticator app.
+</Warning>
+
+---
+
+## Validate 2FA
+
+```
+POST /user/2FA/validate
+```
+
+**Permission:** Connected + API
+
+Validates a 2FA code and enables 2FA for the account (if setting up) or validates 2FA for the current session.
+
+### Body Parameters
+
+<ParamField body="code" type="string" required>
+  6-digit TOTP code from authenticator app or backup code
+</ParamField>
+
+### Request Example
+
+```json
+{
+  "code": "123456"
+}
+```
+
+### Response
+
+```json Success (Setup)
+{
+  "status": "success",
+  "data": {
+    "twoFactorEnabled": true,
+    "message": "Two-factor authentication enabled successfully"
+  }
+}
+```
+
+```json Success (Session Validation)
+{
+  "status": "success",
+  "data": {
+    "validated": true,
+    "validUntil": "1706832000",
+    "message": "2FA validated for this session"
+  }
+}
+```
+
+### Error Responses
+
+| Status | Message | Description |
+|--------|---------|-------------|
+| `error` | Invalid code | The provided code is incorrect or expired |
+| `error` | 2FA not set up | User hasn't initiated 2FA setup |
+| `error` | Backup code already used | This backup code has been used before |
+
+<Info>
+  2FA validation is required for sensitive operations like changing email, cashouts, and API key generation. The validation lasts for the current session or 1 hour, whichever is shorter.
+</Info>
+
+---
+
+## Request 2FA reset
+
+```
+POST /user/reset2FA/ask
+```
+
+**Permission:** Connected + API
+
+Initiates a 2FA reset request. A verification email will be sent to the user's registered email address.
+
+### Body Parameters
+
+<ParamField body="reason" type="string">
+  Optional reason for the reset request
+</ParamField>
+
+### Request Example
+
+```json
+{
+  "reason": "Lost access to authenticator app"
+}
+```
+
+### Response
+
+```json Success
+{
+  "status": "success",
+  "data": {
+    "requestId": 98765,
+    "emailSent": true,
+    "expiresAt": "1706835600",
+    "message": "Verification email sent. The reset link expires in 24 hours."
+  }
+}
+```
+
+<Warning>
+  2FA reset requests are logged and reviewed. Abuse of this system may result in account restrictions.
+</Warning>
+
+---
+
+## Validate 2FA reset
+
+```
+POST /user/reset2FA/validate
+```
+
+**Permission:** Connected + API
+
+Completes a 2FA reset using the verification code sent to email.
+
+### Body Parameters
+
+<ParamField body="code" type="string" required>
+  Verification code from email
+</ParamField>
+
+<ParamField body="requestId" type="integer" required>
+  Reset request ID from the reset request
+</ParamField>
+
+### Request Example
+
+```json
+{
+  "code": "ABCD1234",
+  "requestId": 98765
+}
+```
+
+### Response
+
+```json Success
+{
+  "status": "success",
+  "data": {
+    "twoFactorEnabled": false,
+    "message": "Two-factor authentication has been disabled. You can set it up again from your account settings."
+  }
+}
+```
+
+### Error Responses
+
+| Status | Message | Description |
+|--------|---------|-------------|
+| `error` | Invalid or expired code | The verification code is incorrect or has expired |
+| `error` | Request not found | Invalid request ID |
+| `error` | Too many attempts | Too many failed validation attempts |
+
+<Info>
+  After a successful 2FA reset, we strongly recommend setting up 2FA again as soon as possible to keep your account secure.
+</Info>

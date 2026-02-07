@@ -1,9 +1,7 @@
 ---
 title: "Buy Orders"
-description: "Place, update, and remove standing buy orders for items"
+description: "Create, update, and manage buy orders for items"
 ---
-
-Buy orders are standing offers to purchase a specific item at a set price. When a seller lists an item that matches an active buy order, the transaction can be automatically executed.
 
 ## Create buy order
 
@@ -11,34 +9,62 @@ Buy orders are standing offers to purchase a specific item at a set price. When 
 POST /item/buyorder
 ```
 
-**Permission:** Connected
+**Permission:** Connected + API
 
-<ParamField body="itemid" type="integer" required>
-  Item definition ID
+Creates a buy order for a specific item at a specified price.
+
+### Body Parameters
+
+<ParamField body="itemId" type="integer" required>
+  Item ID for which to create a buy order
 </ParamField>
 
-<ParamField body="value" type="number" required>
+<ParamField body="price" type="integer" required>
   Buy order price in cents
 </ParamField>
 
-<ParamField body="amount" type="integer" required>
-  Quantity to buy (max 500,000)
+<ParamField body="quantity" type="integer" required>
+  Number of items to buy (default: 1)
 </ParamField>
+
+### Request Example
 
 ```json
 {
-  "itemid": 12345,
-  "value": 1500,
-  "amount": 100
+  "itemId": 12345,
+  "price": 15000,
+  "quantity": 3
 }
 ```
 
-### Validation rules
+### Response
 
-- Cannot have duplicate buy orders for the same item
-- Amount must be ≤ 500,000
-- User must have sufficient balance to cover `amount × price`
-- Buy order modifications are tracked per day per user
+```json Success
+{
+  "status": "success",
+  "data": {
+    "buyOrderId": 98765,
+    "itemId": 12345,
+    "price": 15000,
+    "quantity": 3,
+    "totalReserved": 45000,
+    "timestamp": "1706745600"
+  }
+}
+```
+
+### Error Responses
+
+| Status | Message | Description |
+|--------|---------|-------------|
+| `error` | Insufficient balance | User doesn't have enough balance to create the buy order |
+| `error` | Price too low | Buy order price is below minimum threshold |
+| `error` | Item not found | Invalid item ID |
+| `error` | Buy order limit reached | User has reached the maximum number of buy orders |
+
+<Info>
+  The total price (price × quantity) will be reserved from your balance when creating a buy order.
+</Info>
 
 ---
 
@@ -48,29 +74,52 @@ POST /item/buyorder
 POST /item/buyorder/update
 ```
 
-**Permission:** Connected
+**Permission:** Connected + API
 
-Updates the price and/or amount of an existing buy order.
+Updates an existing buy order's price or quantity.
 
-<ParamField body="itemid" type="integer" required>
-  Item definition ID
+### Body Parameters
+
+<ParamField body="buyOrderId" type="integer" required>
+  Buy order ID to update
 </ParamField>
 
-<ParamField body="value" type="number" required>
-  New buy order price in cents
+<ParamField body="price" type="integer">
+  New price in cents (optional)
 </ParamField>
 
-<ParamField body="amount" type="integer" required>
-  New quantity
+<ParamField body="quantity" type="integer">
+  New quantity (optional)
 </ParamField>
+
+### Request Example
 
 ```json
 {
-  "itemid": 12345,
-  "value": 1750,
-  "amount": 150
+  "buyOrderId": 98765,
+  "price": 16000,
+  "quantity": 5
 }
 ```
+
+### Response
+
+```json Success
+{
+  "status": "success",
+  "data": {
+    "buyOrderId": 98765,
+    "newPrice": 16000,
+    "newQuantity": 5,
+    "balanceAdjustment": 35000,
+    "message": "Buy order updated successfully"
+  }
+}
+```
+
+<Warning>
+  Updating a buy order may require additional balance if increasing price or quantity. The difference will be reserved from your available balance.
+</Warning>
 
 ---
 
@@ -80,111 +129,131 @@ Updates the price and/or amount of an existing buy order.
 POST /item/buyorder/remove
 ```
 
-**Permission:** Connected
+**Permission:** Connected + API
 
-Removes an active buy order, setting its amount to 0.
+Cancels and removes a buy order, releasing the reserved balance.
 
-<ParamField body="itemid" type="integer" required>
-  Item definition ID
+### Body Parameters
+
+<ParamField body="buyOrderId" type="integer" required>
+  Buy order ID to remove
 </ParamField>
+
+### Request Example
 
 ```json
 {
-  "itemid": 12345
+  "buyOrderId": 98765
+}
+```
+
+### Response
+
+```json Success
+{
+  "status": "success",
+  "data": {
+    "buyOrderId": 98765,
+    "refundedBalance": 80000,
+    "message": "Buy order removed successfully"
+  }
 }
 ```
 
 ---
 
-## Get user buy order for an item
+## Get user's buy orders for an item
 
 ```
 GET /user/buyorder/{item}
 ```
 
-**Permission:** Connected
+**Permission:** Connected + API
 
 <ParamField path="item" type="string" required>
-  Item definition ID
+  Item identifier (numeric ID)
 </ParamField>
 
-Returns the connected user's buy order for the specified item (if one exists).
-
-### Buy order type
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | integer | Buy order ID |
-| `steamid` | string | User SteamID |
-| `itemid` | integer | Item definition ID |
-| `price` | integer | Buy order price in cents |
-| `amount` | integer | Remaining quantity |
-| `name` | string | Buy order name |
-
----
-
-## Get user buy order list
-
-```
-GET /user/getBuyorder
-GET /user/getBuyorder/{userid}
-```
-
-**Permission:** Connected (admin for `{userid}` variant)
-
-<ParamField path="userid" type="string">
-  SteamID of user (admin only)
-</ParamField>
-
-<ParamField query="skip" type="integer" default="0">
-  Pagination offset
-</ParamField>
-
-<ParamField query="limit" type="integer" default="10">
-  Number of items per page
-</ParamField>
-
-<ParamField query="search" type="string">
-  Search filter (matches item name + effect, minimum 4 characters)
-</ParamField>
-
-Returns the user's active buy order list with full item details. Includes both count and paginated data.
+Returns all active buy orders for a specific item created by the authenticated user.
 
 ### Response
 
 ```json
 {
-  "count": 25,
+  "status": "success",
   "data": [
     {
-      "steamid": "76561198000000000",
-      "itemid": 12345,
-      "price": 1500,
-      "amount": 10,
-      "name": "Unusual Burning Flames Team Captain",
-      "effect": "Burning Flames",
-      "url": "unusual-burning-flames-team-captain",
-      "image": "https://..."
+      "id": 98765,
+      "itemId": 12345,
+      "price": 15000,
+      "quantity": 3,
+      "quantityFilled": 1,
+      "quantityRemaining": 2,
+      "totalReserved": 30000,
+      "timestamp": "1706745600"
     }
   ]
 }
 ```
 
+### Buy Order Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | integer | Buy order ID |
+| `itemId` | integer | Item ID |
+| `price` | integer | Buy order price in cents |
+| `quantity` | integer | Original quantity |
+| `quantityFilled` | integer | Number of items already purchased |
+| `quantityRemaining` | integer | Number of items still needed |
+| `totalReserved` | integer | Total balance reserved for remaining quantity |
+| `timestamp` | string | Unix timestamp of creation |
+
 ---
 
-## Buy order lifecycle
+## Get all user's buy orders
 
-<Steps>
-  <Step title="Creation">
-    User creates a buy order with a price and quantity.
-  </Step>
-  <Step title="Balance check (cron)">
-    A cron job periodically checks if users have sufficient balance to cover their buy orders. Orders are deactivated (amount set to negative) if balance is insufficient, and reactivated when balance is restored.
-  </Step>
-  <Step title="Execution">
-    When a matching item is listed for sale at or below the buy order price, the transaction is executed automatically.
-  </Step>
-  <Step title="Cleanup">
-    Buy orders with amount = 0 are periodically deleted by the cron job.
-  </Step>
-</Steps>
+```
+GET /user/getBuyorder
+```
+
+**Permission:** Connected + API
+
+Returns all active buy orders for the authenticated user across all items.
+
+### Query Parameters
+
+<ParamField query="page" type="integer" default="0">
+  Page number for pagination
+</ParamField>
+
+<ParamField query="perpage" type="integer" default="20">
+  Number of results per page (max 50)
+</ParamField>
+
+### Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "buyOrders": [
+      {
+        "id": 98765,
+        "itemId": 12345,
+        "itemName": "Unusual Team Captain",
+        "price": 15000,
+        "quantity": 3,
+        "quantityRemaining": 2
+      }
+    ],
+    "total": 15,
+    "page": 0,
+    "perpage": 20
+  }
+}
+```
+
+<Info>
+  Buy orders are automatically filled when matching items are listed at or below your buy order price. You'll receive a notification when a buy order is filled.
+</Info>

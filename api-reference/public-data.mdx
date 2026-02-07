@@ -1,0 +1,196 @@
+---
+title: "Public Data"
+description: "Public endpoints for pricing and market data"
+---
+
+## Get price list
+
+```
+GET /public/price
+```
+
+**Permission:** API
+
+Returns a comprehensive price list for all items available on the platform.
+
+### Query Parameters
+
+<ParamField query="game" type="integer">
+  Filter by game ID (`440` for TF2, `730` for CS2, `570` for Dota 2, `252490` for Rust)
+</ParamField>
+
+<ParamField query="format" type="string" default="json">
+  Response format: `json` or `csv`
+</ParamField>
+
+### Response (JSON)
+
+```json
+{
+  "status": "success",
+  "data": {
+    "lastUpdate": "1706745600",
+    "itemCount": 45678,
+    "prices": [
+      {
+        "itemId": 12345,
+        "name": "Unusual Burning Flames Team Captain",
+        "game": 440,
+        "buyPrice": 145000,
+        "sellPrice": 150000,
+        "steamPrice": 155000,
+        "listingCount": 3,
+        "buyOrderCount": 12,
+        "last24hSales": 1,
+        "last24hVolume": 148000
+      }
+    ]
+  }
+}
+```
+
+### Response (CSV)
+
+When `format=csv`, returns a CSV-formatted string:
+
+```csv
+itemId,name,game,buyPrice,sellPrice,steamPrice,listingCount,buyOrderCount
+12345,Unusual Burning Flames Team Captain,440,145000,150000,155000,3,12
+67890,Strange Shotgun,440,7500,8000,8500,15,8
+```
+
+### Price Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `itemId` | integer | Unique item ID |
+| `name` | string | Item display name |
+| `game` | integer | Game App ID |
+| `buyPrice` | integer | Current highest buy order price in cents |
+| `sellPrice` | integer | Current lowest listing price in cents |
+| `steamPrice` | integer | Steam Community Market price in cents |
+| `listingCount` | integer | Number of active listings |
+| `buyOrderCount` | integer | Number of active buy orders |
+| `last24hSales` | integer | Number of sales in last 24 hours |
+| `last24hVolume` | integer | Total sales volume in cents (last 24h) |
+
+<Info>
+  Price data is cached and updated every 3 minutes. Add `?update=1` to force a refresh (rate limited to once per minute).
+</Info>
+
+---
+
+## Get buy order and lowest sales prices
+
+```
+GET /infos/prices/buyorderAndLowestSales
+```
+
+**Permission:** API
+
+Returns a compact CSV-like string with buy order and lowest sale prices for all items. Optimized for quick parsing and low bandwidth usage.
+
+### Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "lastUpdate": "1706745600",
+    "format": "itemId;buyOrderPrice;lowestSalePrice",
+    "prices": "12345;145000;150000,67890;7500;8000,11111;25000;26500,..."
+  }
+}
+```
+
+### Format
+
+The `prices` field contains a comma-separated list of entries. Each entry has the format:
+
+```
+itemId;buyOrderPrice;lowestSalePrice
+```
+
+- **itemId:** Unique item identifier
+- **buyOrderPrice:** Highest active buy order price in cents (0 if no buy orders)
+- **lowestSalePrice:** Lowest active listing price in cents (0 if no listings)
+
+### Example Parsing (JavaScript)
+
+```javascript
+const response = await fetch('https://mannco.store/infos/prices/buyorderAndLowestSales');
+const data = await response.json();
+
+const priceMap = {};
+data.data.prices.split(',').forEach(entry => {
+  const [itemId, buyPrice, sellPrice] = entry.split(';');
+  priceMap[itemId] = {
+    buyOrderPrice: parseInt(buyPrice),
+    lowestSalePrice: parseInt(sellPrice)
+  };
+});
+
+// Access prices
+console.log(priceMap['12345']); // { buyOrderPrice: 145000, lowestSalePrice: 150000 }
+```
+
+<Info>
+  This endpoint is designed for applications that need to quickly fetch all prices with minimal data transfer. Perfect for price tracking bots and market analysis tools.
+</Info>
+
+<Warning>
+  Cache is updated every 3 minutes. Adding `?update=1` forces a refresh but is rate-limited to once per minute per IP.
+</Warning>
+
+---
+
+## Get public sales data
+
+```
+GET /public/sales
+```
+
+**Permission:** API
+
+Returns recent public sales data for market analysis.
+
+### Query Parameters
+
+<ParamField query="game" type="integer">
+  Filter by game ID
+</ParamField>
+
+<ParamField query="limit" type="integer" default="100">
+  Number of sales to return (max 1000)
+</ParamField>
+
+<ParamField query="since" type="integer">
+  Unix timestamp - only return sales after this time
+</ParamField>
+
+### Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "sales": [
+      {
+        "itemId": 12345,
+        "itemName": "Unusual Burning Flames Team Captain",
+        "game": 440,
+        "price": 148000,
+        "timestamp": "1706745600",
+        "seller": "76561198000000000",
+        "buyer": "76561198111111111"
+      }
+    ],
+    "count": 100,
+    "lastUpdate": "1706745600"
+  }
+}
+```
+
+<Note>
+  Sales data includes anonymized seller and buyer Steam IDs. Use this data responsibly and in accordance with privacy regulations.
+</Note>

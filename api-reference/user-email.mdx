@@ -1,0 +1,130 @@
+---
+title: "Email Management"
+description: "Change and validate email addresses"
+---
+
+## Request email change
+
+```
+POST /user/email/change/request
+```
+
+**Permission:** Connected + API + 2FA
+
+Initiates an email change request. Requires 2FA validation.
+
+### Body Parameters
+
+<ParamField body="newEmail" type="string" required>
+  New email address
+</ParamField>
+
+<ParamField body="password" type="string">
+  User password for additional verification (if applicable)
+</ParamField>
+
+### Request Example
+
+```json
+{
+  "newEmail": "newemail@example.com"
+}
+```
+
+### Response
+
+```json Success
+{
+  "status": "success",
+  "data": {
+    "requestId": 12345,
+    "verificationSentTo": "newemail@example.com",
+    "currentEmail": "oldemail@example.com",
+    "expiresAt": "1706835600",
+    "message": "Verification email sent to new address. Click the link to confirm."
+  }
+}
+```
+
+### Error Responses
+
+| Status | Message | Description |
+|--------|---------|-------------|
+| `error` | Email already in use | The new email is already registered to another account |
+| `error` | Invalid email format | The provided email address is not valid |
+| `error` | 2FA validation required | User must validate 2FA before changing email |
+| `error` | Too many requests | Rate limit exceeded (1 request per 5 minutes) |
+
+<Warning>
+  Email change requests require 2FA validation. Make sure you have validated your 2FA for the current session before making this request.
+</Warning>
+
+---
+
+## Validate email change
+
+```
+POST /user/email/change/validate
+```
+
+**Permission:** Connected + API + 2FA
+
+Completes an email change using the verification code sent to the new email address.
+
+### Body Parameters
+
+<ParamField body="code" type="string" required>
+  Verification code from email
+</ParamField>
+
+<ParamField body="requestId" type="integer" required>
+  Email change request ID
+</ParamField>
+
+### Request Example
+
+```json
+{
+  "code": "ABCD1234EFGH5678",
+  "requestId": 12345
+}
+```
+
+### Response
+
+```json Success
+{
+  "status": "success",
+  "data": {
+    "newEmail": "newemail@example.com",
+    "verified": true,
+    "message": "Email address changed successfully"
+  }
+}
+```
+
+### Error Responses
+
+| Status | Message | Description |
+|--------|---------|-------------|
+| `error` | Invalid or expired code | The verification code is incorrect or has expired (24 hours) |
+| `error` | Request not found | Invalid request ID |
+| `error` | Too many attempts | Too many failed validation attempts |
+
+<Info>
+  Once the email is changed, all active sessions except the current one will be terminated for security reasons.
+</Info>
+
+---
+
+## Email Change Flow
+
+1. User calls `POST /user/email/change/request` with new email (requires 2FA)
+2. System sends verification email to the new email address
+3. User receives email with verification code
+4. User calls `POST /user/email/change/validate` with the code and request ID
+5. Email is changed, old sessions are terminated
+
+<Note>
+  The verification link/code expires after 24 hours. You can request a new email change if the link expires.
+</Note>
