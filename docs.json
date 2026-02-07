@@ -3,9 +3,19 @@
   "theme": "mint",
   "name": "Mannco.store API",
   "colors": {
-    "primary": "#4fd1c5",
-    "light": "#5ee6d9",
-    "dark": "#151820"
+    "primary": "#29CCE0",
+    "light": "#29CCE0",
+    "dark": "#29CCE0"
+  },
+  "appearance": {
+    "default": "dark",
+    "strict": true
+  },
+  "background": {
+    "color": {
+      "light": "#021214",
+      "dark": "#021214"
+    }
   },
   "favicon": "/favicon.svg",
   "navigation": {
