@@ -2,22 +2,43 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
   "name": "Mannco.store API",
+  "description": "Complete API documentation for Mannco.store - Buy and sell TF2, CS:GO, Dota 2 and Rust skins on the cheapest secured marketplace.",
   "colors": {
-    "primary": "#4fd1c5",
-    "light": "#5ee6d9",
-    "dark": "#151820"
+    "primary": "#29CCE0",
+    "light": "#29CCE0",
+    "dark": "#29CCE0"
+  },
+  "appearance": {
+    "default": "dark",
+    "strict": true
+  },
+  "background": {
+    "color": {
+      "light": "#021214",
+      "dark": "#021214"
+    },
+    "decoration": "gradient"
   },
   "favicon": "/favicon.svg",
+  "seo": {
+    "indexing": "all"
+  },
+  "metadata": {
+    "og:site_name": "Mannco.store API Documentation",
+    "og:type": "website",
+    "og:locale": "en_US",
+    "twitter:card": "summary_large_image",
+    "twitter:site": "@manncostore"
+  },
   "navigation": {
     "tabs": [
       {
         "tab": "Documentation",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Getting Started",
             "pages": [
-              "index",
-              "api-reference/introduction"
+              "index"
             ]
           }
         ]
@@ -40,37 +61,27 @@
           {
             "group": "Items",
             "pages": [
-              "api-reference/items"
+              "api-reference/items",
+              "api-reference/inventory",
+              "api-reference/bundles"
             ]
           },
           {
-            "group": "Inventory",
+            "group": "Trading",
             "pages": [
-              "api-reference/inventory"
-            ]
-          },
-          {
-            "group": "Trades",
-            "pages": [
-              "api-reference/trades"
-            ]
-          },
-          {
-            "group": "Offers",
-            "pages": [
-              "api-reference/offers"
-            ]
-          },
-          {
-            "group": "Buy Orders",
-            "pages": [
+              "api-reference/trades",
+              "api-reference/offers",
               "api-reference/buyorders"
             ]
           },
           {
-            "group": "Deposit",
+            "group": "Payments",
             "pages": [
-              "api-reference/deposit"
+              "api-reference/deposit",
+              "api-reference/cart",
+              "api-reference/payment",
+              "api-reference/gift",
+              "api-reference/cashout"
             ]
           },
           {
@@ -99,16 +110,7 @@
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Website",
-          "href": "https://mannco.store",
-          "icon": "globe"
-        }
-      ]
-    }
+    ]
   },
   "logo": {
     "light": "/logo/light.svg",
@@ -125,11 +127,6 @@
       "type": "button",
       "label": "Mannco.store",
       "href": "https://mannco.store"
-    }
-  },
-  "footer": {
-    "socials": {
-      "discord": "https://discord.gg/mannco"
     }
   }
 }
