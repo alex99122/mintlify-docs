@@ -53,7 +53,13 @@
             ]
           },
           {
-            "group": "Items & Inventory",
+            "group": "Authentication",
+            "pages": [
+              "api-reference/authentication"
+            ]
+          },
+          {
+            "group": "Items",
             "pages": [
               "api-reference/items",
               "api-reference/inventory",
@@ -79,29 +85,27 @@
             ]
           },
           {
-            "group": "User Management",
+            "group": "User Account",
             "pages": [
-              "api-reference/user/authentication",
-              "api-reference/user/account",
-              "api-reference/user/settings",
-              "api-reference/user/two-factor",
-              "api-reference/user/email",
-              "api-reference/user/history"
+              "api-reference/user-account",
+              "api-reference/user-settings",
+              "api-reference/user-2fa",
+              "api-reference/user-email",
+              "api-reference/user-history"
             ]
           },
           {
-            "group": "Community & Support",
+            "group": "Cashout & Payment",
             "pages": [
-              "api-reference/giveaways",
-              "api-reference/support"
+              "api-reference/cashout",
+              "api-reference/payment"
             ]
           },
           {
-            "group": "System",
+            "group": "Utilities & Public Data",
             "pages": [
               "api-reference/utils",
-              "api-reference/infos",
-              "api-reference/admin"
+              "api-reference/public-data"
             ]
           }
         ]

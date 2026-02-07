@@ -1,201 +1,116 @@
 ---
 title: "Cashout"
-description: "Endpoints for processing cashouts, linking payment methods, and managing payout accounts"
+description: "Process cashout requests to withdraw balance"
 ---
 
-## Process Cashout
-
-<Card title="POST /cashout/process" icon="money-bill-transfer">
-  Initiates a cashout request. Validates the user's balance, cashout parameters, and deducts the amount before creating the cashout record.
-</Card>
+## Process cashout
 
 ```
 POST /cashout/process
 ```
 
-**Authentication:** `connected`
+**Permission:** Connected + API
 
-**Body Parameters**
+Initiates a cashout request to withdraw balance from the user's account to a payment provider (Payoneer, Tipalti, etc.).
 
-<ParamField body="type" type="string" required>
-  The cashout method type (e.g., `"paypal"`, `"payoneer"`, `"tipalti"`).
-</ParamField>
+### Body Parameters
 
 <ParamField body="amount" type="integer" required>
-  The amount to cash out (in cents).
+  Amount to cashout in cents (minimum: 5000 = $50)
 </ParamField>
 
-<ParamField body="provider" type="string" required>
-  The payment provider (`"paypal"`, `"payoneer"`, or `"tipalti"`).
+<ParamField body="method" type="string" required>
+  Payment method: `payoneer` or `tipalti`
 </ParamField>
 
-**Response**
+<ParamField body="email" type="string">
+  Payment email (if different from account email)
+</ParamField>
+
+### Request Example
 
 ```json
 {
+  "amount": 100000,
+  "method": "payoneer",
+  "email": "payment@example.com"
+}
+```
+
+### Response
+
+```json Success
+{
   "status": "success",
   "data": {
-    "message": "Cashout processed successfully",
-    "cashout_id": 12345,
-    "amount": 10000,
-    "type": "paypal",
-    "status": "pending"
+    "cashoutId": 4567,
+    "amount": 100000,
+    "method": "payoneer",
+    "fee": 2000,
+    "netAmount": 98000,
+    "status": "pending",
+    "estimatedCompletion": "1706918400",
+    "message": "Cashout request submitted successfully"
   }
 }
 ```
 
-**Errors**
+### Response Fields
 
-| Status | Message |
-|--------|---------|
-| `error` | User not authenticated |
-| `error` | Missing required parameters: type and amount |
-| `error` | Insufficient balance |
-| `error` | Invalid amount |
-| `error` | Failed to deduct balance |
+| Field | Type | Description |
+|-------|------|-------------|
+| `cashoutId` | integer | Unique cashout request ID |
+| `amount` | integer | Requested amount in cents |
+| `method` | string | Payment method used |
+| `fee` | integer | Processing fee in cents |
+| `netAmount` | integer | Amount after fees |
+| `status` | string | Request status (`pending`, `processing`, `completed`) |
+| `estimatedCompletion` | string | Unix timestamp of estimated completion |
+
+### Error Responses
+
+| Status | Message | Description |
+|--------|---------|-------------|
+| `error` | Insufficient balance | Account balance is less than requested amount + fees |
+| `error` | Amount below minimum | Minimum cashout is $50 (5000 cents) |
+| `error` | Payment method not linked | User hasn't linked the selected payment method |
+| `error` | Pending cashout exists | User already has a pending cashout request |
+| `error` | Account verification required | Account must be verified before cashing out |
+| `error` | Cooldown period | Must wait 24 hours between cashout requests |
+
+### Cashout Fees
+
+| Method | Fee | Minimum | Processing Time |
+|--------|-----|---------|-----------------|
+| Payoneer | 2% | $50 | 1-3 business days |
+| Tipalti | 1.5% | $50 | 3-5 business days |
+
+<Warning>
+  Cashout requests cannot be cancelled once they are in "processing" status. Make sure all details are correct before submitting.
+</Warning>
+
+<Info>
+  You must link your payment method before requesting a cashout. Use the cashout link/unlink endpoints to manage your payment methods.
+</Info>
 
 ---
 
-## Link Cashout Method
+## Cashout Process Flow
 
-<Card title="POST /cashout/link" icon="link">
-  Links a cashout method to the user's account. Supports PayPal, Payoneer, and Tipalti with different flows for each provider.
-</Card>
+1. **Link Payment Method:** User links Payoneer or Tipalti account
+2. **Request Cashout:** User submits cashout request via `POST /cashout/process`
+3. **Validation:** System validates balance, fees, and payment method
+4. **Processing:** Payment is initiated with the payment provider
+5. **Completion:** User receives payment, cashout marked as completed
 
-```
-POST /cashout/link
-```
-
-**Authentication:** `connected`
-
-**Body Parameters (all providers)**
-
-<ParamField body="provider" type="string" required>
-  The payment provider: `"paypal"`, `"payoneer"`, or `"tipalti"`.
-</ParamField>
-
-### PayPal & Payoneer
-
-Returns a link URL that the user should follow to complete account linking.
-
-### Tipalti — Additional Parameters
-
-<ParamField body="payeeType" type="string" default="Individual">
-  `"Individual"` or `"Company"`.
-</ParamField>
-
-<ParamField body="firstName" type="string" required>
-  First name (required for Individual payee).
-</ParamField>
-
-<ParamField body="lastName" type="string" required>
-  Last name (required for Individual payee).
-</ParamField>
-
-<ParamField body="companyName" type="string">
-  Company name (required for Company payee type).
-</ParamField>
-
-<ParamField body="email" type="string" required>
-  Email address for the payee.
-</ParamField>
-
-<ParamField body="address" type="object" required>
-  Address object with the following fields:
-  <Expandable title="Address fields">
-    <ParamField body="address.address1" type="string" required>Street address line 1.</ParamField>
-    <ParamField body="address.address2" type="string">Street address line 2.</ParamField>
-    <ParamField body="address.city" type="string" required>City name.</ParamField>
-    <ParamField body="address.postalCode" type="string" required>Postal/ZIP code.</ParamField>
-    <ParamField body="address.country" type="string" required>ISO country code.</ParamField>
-    <ParamField body="address.state" type="string">State/province (optional).</ParamField>
-  </Expandable>
-</ParamField>
-
-<ParamField body="phone" type="string">
-  Phone number (optional).
-</ParamField>
-
-<ParamField body="taxDetails" type="object">
-  Tax details (optional).
-  <Expandable title="Tax fields">
-    <ParamField body="taxDetails.taxpayerId" type="string">Taxpayer ID.</ParamField>
-    <ParamField body="taxDetails.taxFormType" type="string">Tax form type.</ParamField>
-  </Expandable>
-</ParamField>
-
-<ParamField body="paymentMethod" type="object">
-  Payment method preferences (optional — can be set during onboarding).
-  <Expandable title="Payment method fields">
-    <ParamField body="paymentMethod.paymentMethodName" type="string">Payment method name.</ParamField>
-    <ParamField body="paymentMethod.paymentDetails" type="object">Payment method details.</ParamField>
-  </Expandable>
-</ParamField>
-
-### Response — PayPal / Payoneer
-
-```json
-{
-  "status": "success",
-  "data": {
-    "message": "Cashout link created successfully",
-    "link": "https://paypal.com/connect/...",
-    "provider": "paypal",
-    "method": "link"
-  }
-}
-```
-
-### Response — Tipalti
-
-```json
-{
-  "status": "success",
-  "data": {
-    "message": "Tipalti payee account created successfully",
-    "provider": "tipalti",
-    "payeeId": "payee_abc123",
-    "alreadyExists": false
-  }
-}
-```
-
----
-
-## Unlink Cashout Method
-
-<Card title="POST /cashout/unlink" icon="link-slash">
-  Removes a linked cashout method from the user's account. Currently only supports Payoneer.
-</Card>
+### Status Transitions
 
 ```
-POST /cashout/unlink
+pending → processing → completed
+                  ↓
+               failed (balance refunded)
 ```
 
-**Authentication:** `connected`
-
-**Body Parameters**
-
-<ParamField body="provider" type="string" required>
-  The provider to unlink. Currently only `"payoneer"` is supported.
-</ParamField>
-
-**Response**
-
-```json
-{
-  "status": "success",
-  "data": {
-    "message": "Payoneer cashout method unlinked successfully",
-    "provider": "payoneer"
-  }
-}
-```
-
-**Errors**
-
-| Status | Message |
-|--------|---------|
-| `error` | Missing required parameter: provider |
-| `error` | Invalid provider |
-| `error` | Failed to unlink cashout method. The method may not be linked or an error occurred. |
+<Note>
+  You will receive email notifications at each stage of the cashout process. Check your email for updates on your cashout status.
+</Note>

@@ -1,0 +1,379 @@
+---
+title: "User History"
+description: "View sales statistics, balance history, purchase history, sales history, cashout history, and transaction details"
+---
+
+## Get sales information
+
+```
+GET /user/getSalesInfos
+```
+
+**Permission:** Connected + API
+
+Returns summary statistics about the user's sales activity.
+
+### Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "totalSales": 156,
+    "totalRevenue": 450000,
+    "averageSalePrice": 2884,
+    "itemsSold": 156,
+    "last30DaysSales": 23,
+    "last30DaysRevenue": 78000
+  }
+}
+```
+
+---
+
+## Get sales chart information
+
+```
+GET /user/getSalesChartInfos
+```
+
+**Permission:** Connected + API
+
+Returns daily sales data for charting purposes (last 30 days).
+
+### Response
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "date": "2025-01-15",
+      "sales": 3,
+      "revenue": 15000
+    },
+    {
+      "date": "2025-01-16",
+      "sales": 5,
+      "revenue": 22000
+    }
+  ]
+}
+```
+
+---
+
+## Get balance history
+
+```
+GET /user/getBalanceHistory
+```
+
+**Permission:** Connected + API
+
+Returns paginated history of all balance changes (deposits, purchases, sales, withdrawals, cashouts).
+
+### Query Parameters
+
+<ParamField query="page" type="integer" default="0">
+  Page number for pagination
+</ParamField>
+
+<ParamField query="perpage" type="integer" default="20">
+  Number of results per page (max 100)
+</ParamField>
+
+<ParamField query="type" type="string">
+  Filter by transaction type: `deposit`, `sale`, `purchase`, `cashout`, `bonus`, `refund`
+</ParamField>
+
+### Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "transactions": [
+      {
+        "id": 98765,
+        "type": "sale",
+        "amount": 15000,
+        "balance": 265000,
+        "description": "Sold: Unusual Team Captain",
+        "timestamp": "1706745600",
+        "relatedId": 12345
+      },
+      {
+        "id": 98764,
+        "type": "purchase",
+        "amount": -8000,
+        "balance": 250000,
+        "description": "Purchased: Strange Shotgun",
+        "timestamp": "1706742000",
+        "relatedId": 67890
+      }
+    ],
+    "total": 346,
+    "page": 0,
+    "perpage": 20,
+    "currentBalance": 265000
+  }
+}
+```
+
+### Transaction Types
+
+| Type | Description |
+|------|-------------|
+| `deposit` | Item deposit credited |
+| `sale` | Item sold to another user |
+| `purchase` | Item purchased from another user |
+| `payment` | Payment/top-up added |
+| `cashout` | Balance withdrawn |
+| `bonus` | Promotional bonus |
+| `refund` | Refund from cancelled transaction |
+| `fee` | Platform fee charged |
+
+---
+
+## Get purchase history
+
+```
+GET /user/getPurchaseHistory
+```
+
+**Permission:** Connected + API
+
+Returns paginated history of all items purchased by the user.
+
+### Query Parameters
+
+<ParamField query="page" type="integer" default="0">
+  Page number for pagination
+</ParamField>
+
+<ParamField query="perpage" type="integer" default="20">
+  Number of results per page (max 100)
+</ParamField>
+
+### Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "purchases": [
+      {
+        "id": 12345,
+        "itemName": "Unusual Burning Flames Team Captain",
+        "itemImage": "https://...",
+        "price": 150000,
+        "seller": "76561198111111111",
+        "sellerName": "SellerName",
+        "timestamp": "1706745600",
+        "status": "completed"
+      }
+    ],
+    "total": 89,
+    "page": 0,
+    "perpage": 20,
+    "totalSpent": 1250000
+  }
+}
+```
+
+---
+
+## Get sales history
+
+```
+GET /user/getSalesHistory
+```
+
+**Permission:** Connected + API
+
+Returns paginated history of all items sold by the user.
+
+### Query Parameters
+
+<ParamField query="page" type="integer" default="0">
+  Page number for pagination
+</ParamField>
+
+<ParamField query="perpage" type="integer" default="20">
+  Number of results per page (max 100)
+</ParamField>
+
+### Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "sales": [
+      {
+        "id": 67890,
+        "itemName": "Strange Shotgun",
+        "itemImage": "https://...",
+        "price": 8000,
+        "buyer": "76561198222222222",
+        "buyerName": "BuyerName",
+        "timestamp": "1706742000",
+        "status": "completed"
+      }
+    ],
+    "total": 156,
+    "page": 0,
+    "perpage": 20,
+    "totalRevenue": 450000
+  }
+}
+```
+
+---
+
+## Get cashout history
+
+```
+GET /user/getCashoutHistory
+```
+
+**Permission:** Connected + API
+
+Returns paginated history of all cashout requests.
+
+### Query Parameters
+
+<ParamField query="page" type="integer" default="0">
+  Page number for pagination
+</ParamField>
+
+<ParamField query="perpage" type="integer" default="20">
+  Number of results per page (max 50)
+</ParamField>
+
+### Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "cashouts": [
+      {
+        "id": 4567,
+        "amount": 100000,
+        "method": "payoneer",
+        "status": "completed",
+        "requestedAt": "1706740000",
+        "completedAt": "1706826400",
+        "transactionId": "PAYO_123456789"
+      },
+      {
+        "id": 4566,
+        "amount": 50000,
+        "method": "tipalti",
+        "status": "pending",
+        "requestedAt": "1706745600",
+        "estimatedCompletionAt": "1706918400"
+      }
+    ],
+    "total": 12,
+    "page": 0,
+    "perpage": 20,
+    "totalCashedOut": 350000
+  }
+}
+```
+
+### Cashout Status
+
+| Status | Description |
+|--------|-------------|
+| `pending` | Cashout request is being processed |
+| `processing` | Payment is being sent |
+| `completed` | Payment completed successfully |
+| `failed` | Payment failed (balance refunded) |
+| `cancelled` | Cashout cancelled by user |
+
+---
+
+## Get transaction history
+
+```
+GET /user/getTransactionHistory
+```
+
+**Permission:** Connected + API
+
+Returns a unified transaction history combining all types of transactions.
+
+### Query Parameters
+
+<ParamField query="page" type="integer" default="0">
+  Page number for pagination
+</ParamField>
+
+<ParamField query="perpage" type="integer" default="20">
+  Number of results per page (max 100)
+</ParamField>
+
+### Response
+
+Combines data from balance history, purchases, sales, and cashouts into a single chronological view.
+
+---
+
+## Get transaction details
+
+```
+GET /user/getTransactionDetails
+```
+
+**Permission:** Connected + API
+
+Returns detailed information about a specific transaction.
+
+### Query Parameters
+
+<ParamField query="transactionId" type="integer" required>
+  Transaction ID
+</ParamField>
+
+<ParamField query="type" type="string" required>
+  Transaction type: `sale`, `purchase`, `deposit`, `cashout`, `balance`
+</ParamField>
+
+### Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "id": 12345,
+    "type": "sale",
+    "amount": 150000,
+    "timestamp": "1706745600",
+    "status": "completed",
+    "item": {
+      "id": 5678,
+      "name": "Unusual Burning Flames Team Captain",
+      "image": "https://...",
+      "assetId": "987654321"
+    },
+    "buyer": {
+      "steamId": "76561198222222222",
+      "name": "BuyerName",
+      "avatar": "https://..."
+    },
+    "tradeOffer": {
+      "tradeId": "123456789",
+      "status": 3,
+      "completedAt": "1706749200"
+    }
+  }
+}
+```
+
+<Info>
+  Transaction details include full context like involved users, items, trade offers, and timestamps for audit purposes.
+</Info>

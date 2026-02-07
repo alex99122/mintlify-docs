@@ -1,78 +1,66 @@
 ---
 title: "Deposit"
-description: "Deposit Steam items onto the Mannco.store platform for selling"
+description: "Deposit items from Steam inventory to Mannco.store"
 ---
 
-## Get deposit items
+## Get deposit information
 
 ```
 GET /deposit/{game}
-GET /deposit/{game}/{userid}
 ```
 
-**Permission:** Connected
+**Permission:** Connected + API
 
-<ParamField path="game" type="string" required>
-  Game App ID (`440`, `730`, `570`, `252490`)
+<ParamField path="game" type="integer" required>
+  Game ID (`440` for TF2, `730` for CS2, `570` for Dota 2, `252490` for Rust)
 </ParamField>
 
-<ParamField path="userid" type="string">
-  SteamID of user (for admin/alternate view)
-</ParamField>
+Returns pricing information and available items from the user's Steam inventory for the specified game.
 
-Fetches the user's Steam inventory for the specified game and returns depositable items with pricing information. Items are grouped by type to reduce duplicates.
+### Response
 
-### Supported games
+```json
+{
+  "status": "success",
+  "data": {
+    "items": [
+      {
+        "assetId": "123456789",
+        "classId": "987654321",
+        "instanceId": "0",
+        "name": "Unusual Burning Flames Team Captain",
+        "marketName": "Unusual Team Captain",
+        "icon": "https://...",
+        "marketable": 1,
+        "tradable": 1,
+        "price": 150000,
+        "suggested_price": 145000,
+        "accepted": true
+      }
+    ],
+    "steamInventoryUrl": "https://steamcommunity.com/profiles/.../inventory",
+    "totalValue": 450000
+  }
+}
+```
 
-| Game | App ID | Grouping |
-|------|--------|----------|
-| TF2 | `440` | By item_id + sheen + spell + killstreaker |
-| CS2 | `730` | By item_id + wear + pattern |
-| Dota 2 | `570` | By item_id + type + quality |
-| Rust | `252490` | By item_id + type + category |
-
-### TF2 deposit item type
+### Item Fields
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `assetid` | string | Steam asset ID(s), semicolon-separated if grouped |
-| `market_hash_name` | string | Steam market hash name |
-| `unusual` | string | Unusual effect name |
-| `craft` | string | `"uncraftable "` if uncraftable, empty otherwise |
-| `spell` | string | Semicolon-separated spell names |
-| `sheen` | string | Killstreak sheen |
-| `killstreaker` | string | Killstreaker effect |
-| `quality` | string | Item quality |
-| `class` | string | TF2 class(es) |
-| `image` | string | Item image URL |
-| `url` | string | Mannco.store item URL slug |
-| `item_id` | string | Mannco.store item definition ID |
-| `depositkey` | string | Deposit authorization hash |
-| `count` | integer | Number of identical items |
-| `disabled` | string | Reason if deposit is blocked (`"blacklist"`, `"highstock"`) |
-| `nb_high_stock` | integer | Current stock count on site |
-| `high_stock_limit` | integer | Maximum stock threshold |
+| `assetId` | string | Steam asset ID |
+| `classId` | string | Steam class ID |
+| `name` | string | Item display name |
+| `marketName` | string | Steam Market name |
+| `price` | integer | Mannco.store buy price in cents |
+| `suggested_price` | integer | Suggested listing price in cents |
+| `accepted` | boolean | Whether the item is accepted for deposit |
+| `tradable` | integer | 1 if tradable, 0 if trade locked |
+| `marketable` | integer | 1 if marketable on Steam |
 
-### CS2 deposit item type
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `assetid` | string | Steam asset ID(s) |
-| `market_hash_name` | string | Market hash name |
-| `type` | string | Item type |
-| `quality` | string | Item quality |
-| `rarity` | string | Item rarity |
-| `wear` | string | Float wear value |
-| `pattern` | string | Pattern template ID |
-| `image` | string | Item image URL |
-| `stickers` | array | Array of sticker objects (`{url, name}`) |
-| `keychains` | array | Array of keychain objects (`{url, name}`) |
-| `depositkey` | string | Deposit authorization hash |
-| `count` | integer | Number of identical items |
-
-<Warning>
-  Items on the blacklist or exceeding the high stock threshold cannot be deposited. The `disabled` field indicates the reason.
-</Warning>
+<Info>
+  Only items that are tradable, marketable, and have a valid price will have `accepted: true`.
+</Info>
 
 ---
 
@@ -82,27 +70,31 @@ Fetches the user's Steam inventory for the specified game and returns depositabl
 GET /deposit/botList/{game}
 ```
 
-**Permission:** Public
+**Permission:** API
 
-<ParamField path="game" type="string" required>
-  Game App ID
+<ParamField path="game" type="integer" required>
+  Game ID
 </ParamField>
 
-Returns the list of trade bots available for the specified game, sorted by available inventory space (most space first). Each bot includes a deposit URL.
+Returns a list of available trade bots for the specified game, including their status and capacity.
 
-### Bot type
+### Response
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | integer | Bot ID |
-| `steamid` | string | Bot Steam ID |
-| `name` | string | Bot display name |
-| `disabled` | integer | Whether bot is disabled |
-| `url` | string | Deposit URL |
-| `TF2` | integer | Free TF2 inventory slots |
-| `CSGO` | integer | Free CS2 inventory slots |
-| `DOTA` | integer | Free Dota 2 inventory slots |
-| `RUST` | integer | Free Rust inventory slots |
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "steamId": "76561198000000000",
+      "name": "Mannco Bot #1",
+      "online": true,
+      "capacity": 850,
+      "currentItems": 645,
+      "tradeUrl": "https://steamcommunity.com/tradeoffer/new/?partner=..."
+    }
+  ]
+}
+```
 
 ---
 
@@ -112,13 +104,44 @@ Returns the list of trade bots available for the specified game, sorted by avail
 GET /deposit/tradeStatus/{tradeid}
 ```
 
-**Permission:** Connected
+**Permission:** Connected + API
 
 <ParamField path="tradeid" type="string" required>
-  Trade ID
+  Steam trade offer ID
 </ParamField>
 
-Returns the current status of a deposit trade.
+Checks the current status of a deposit trade offer.
+
+### Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "tradeId": "987654321",
+    "status": 3,
+    "statusText": "Completed",
+    "items": [
+      {
+        "assetId": "123456789",
+        "name": "Unusual Team Captain",
+        "price": 150000
+      }
+    ],
+    "totalPrice": 150000,
+    "timestamp": "1706745600",
+    "completedAt": "1706749200"
+  }
+}
+```
+
+### Trade Status Values
+
+| Status | Description |
+|--------|-------------|
+| `0` | Pending - waiting for acceptance |
+| `3` | Completed - items credited to account |
+| `-1` | Failed - trade was declined or expired |
 
 ---
 
@@ -128,31 +151,50 @@ Returns the current status of a deposit trade.
 POST /deposit/setPriceForUpcomingTrade
 ```
 
-**Permission:** Connected
+**Permission:** Connected + API
 
-Sets custom listing prices for items that are about to be deposited. The price mapping is stored and applied when the trade completes.
+Pre-sets custom prices for items before creating a deposit trade. Useful for negotiating prices or handling items with dynamic pricing.
 
-### Request body
+### Body Parameters
 
-<ParamField body="value" type="object" required>
-  JSON object mapping asset IDs to prices (in cents)
+<ParamField body="items" type="array" required>
+  Array of items with assetId and custom price
 </ParamField>
+
+### Request Example
 
 ```json
 {
-  "value": {
-    "1234567890": 15000,
-    "9876543210": 25000
-  }
+  "items": [
+    {
+      "assetId": "123456789",
+      "price": 145000
+    },
+    {
+      "assetId": "987654321",
+      "price": 85000
+    }
+  ]
 }
 ```
 
 ### Response
 
-```json
+```json Success
 {
-  "id": 42
+  "status": "success",
+  "data": {
+    "pricesSet": 2,
+    "expiresAt": "1706749200",
+    "message": "Prices set for upcoming trade. Create trade within 10 minutes."
+  }
 }
 ```
 
-Returns the ID of the stored price record.
+<Warning>
+  Custom prices expire after 10 minutes. You must initiate the deposit trade within this timeframe.
+</Warning>
+
+<Info>
+  This endpoint is typically used in conjunction with a manual price negotiation process. Most users will use the standard pricing from `GET /deposit/{game}`.
+</Info>

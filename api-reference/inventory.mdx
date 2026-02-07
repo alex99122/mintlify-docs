@@ -1,52 +1,42 @@
 ---
 title: "Inventory"
-description: "Manage your on-site inventory: items on sale, in inventory, withdraw, and random hat"
+description: "Manage user inventory: view items on sale, items in inventory, and withdraw items"
 ---
 
 ## Get items on sale
 
 ```
 GET /inventory/onSale
-GET /inventory/onSale/{userid}
 ```
 
-**Permission:** Connected (admin for `{userid}` variant)
+**Permission:** Connected + API
 
-<ParamField path="userid" type="string">
-  SteamID of user (admin only)
-</ParamField>
+Returns all items currently listed for sale by the authenticated user.
 
-<ParamField query="skip" type="integer" default="0">
-  Pagination offset
-</ParamField>
+### Response
 
-<ParamField query="limit" type="integer" default="10">
-  Number of items per page
-</ParamField>
+Returns an array of backpack items with state = 1 (on sale), including full item details, pricing, and inspection values.
 
-<ParamField query="search" type="string">
-  Search filter (matches against item name and effect)
-</ParamField>
-
-Returns items currently listed for sale by the user. Items are grouped by item definition (for non-CS2 items without special attributes) and price.
-
-### Response item type
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `ids` | string | Comma-separated backpack asset IDs (grouped) |
-| `count` | integer | Number of items in this group |
-| `item_id` | integer | Item definition ID |
-| `name` | string | Item name |
-| `effect` | string | Unusual effect (TF2) |
-| `url` | string | Item URL slug |
-| `game` | integer | Game App ID |
-| `quality` | string | Item quality |
-| `image` | string | Item image URL |
-| `assetId` | string | Representative asset ID |
-| `bot` | string | Bot holding the item |
-| `state` | integer | `1` (on sale) |
-| `price` | integer | Listed price in cents |
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "id": 12345,
+      "assetId": "987654321",
+      "item_id": 5678,
+      "user": "76561198000000000",
+      "state": 1,
+      "price": 15000,
+      "bot": "mannco_bot_1",
+      "game": 440,
+      "name": "Unusual Burning Flames Team Captain",
+      "image": "https://...",
+      "quality": "Unusual"
+    }
+  ]
+}
+```
 
 ---
 
@@ -54,28 +44,34 @@ Returns items currently listed for sale by the user. Items are grouped by item d
 
 ```
 GET /inventory/onInventory
-GET /inventory/onInventory/{userid}
 ```
 
-**Permission:** Connected (admin for `{userid}` variant)
+**Permission:** Connected + API
 
-<ParamField path="userid" type="string">
-  SteamID of user (admin only)
-</ParamField>
+Returns all items in the authenticated user's inventory (not listed for sale, state = 0).
 
-<ParamField query="skip" type="integer" default="0">
-  Pagination offset
-</ParamField>
+### Response
 
-<ParamField query="limit" type="integer" default="10">
-  Number of items per page
-</ParamField>
+Returns an array of backpack items with state = 0, including full item details and inspection values.
 
-<ParamField query="search" type="string">
-  Search filter
-</ParamField>
-
-Returns items in the user's on-site inventory that are **not** listed for sale (state = 0). Same response structure as `onSale`.
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "id": 12346,
+      "assetId": "987654322",
+      "item_id": 5679,
+      "user": "76561198000000000",
+      "state": 0,
+      "bot": "mannco_bot_1",
+      "game": 440,
+      "name": "Strange Shotgun",
+      "image": "https://..."
+    }
+  ]
+}
+```
 
 ---
 
@@ -85,60 +81,46 @@ Returns items in the user's on-site inventory that are **not** listed for sale (
 POST /inventory/withdraw
 ```
 
-**Permission:** Connected
+**Permission:** Connected + API
 
-Withdraws items from your on-site inventory back to your Steam account. Creates a trade offer.
+Initiates a trade offer to withdraw items from the user's Mannco.store inventory to their Steam account.
 
-### Request body
+### Body Parameters
 
-<ParamField body="ids" type="string" required>
-  Comma-separated list of backpack entry IDs to withdraw
+<ParamField body="items" type="array" required>
+  Array of backpack item IDs to withdraw
 </ParamField>
+
+### Request Example
 
 ```json
 {
-  "ids": "12345,67890,11111"
+  "items": [12345, 12346, 12347]
 }
 ```
 
 ### Response
 
-```json
+```json Success
 {
-  "updated": 3,
-  "locked": 0
+  "status": "success",
+  "data": {
+    "tradeId": "123456789",
+    "tradeUrl": "https://steamcommunity.com/tradeoffer/...",
+    "message": "Trade offer sent successfully"
+  }
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `updated` | integer | Number of items successfully queued for withdrawal |
-| `locked` | integer | Number of items that could not be withdrawn (locked, expired, etc.) |
+### Error Responses
+
+| Status | Message | Description |
+|--------|---------|-------------|
+| `error` | Items not found | One or more item IDs don't exist or don't belong to the user |
+| `error` | Items not available for withdrawal | Items are in active trades or pending withdrawal |
+| `error` | Trade URL not set | User must set their Steam trade URL first |
+| `error` | Bot offline | The bot holding the items is currently offline |
 
 <Warning>
-  Items with an active `expire` lock cannot be withdrawn until the lock expires.
+  Items must have state = 0 (in inventory) or state = 1 (on sale) to be withdrawable. Items in active trades (state = 3) or pending withdrawal (state = 2) cannot be withdrawn.
 </Warning>
-
----
-
-## Random Hat
-
-```
-POST /inventory/randomHat
-```
-
-**Permission:** Connected
-
-Converts multiple hats into a random hat. TF2-specific feature.
-
-### Request body
-
-<ParamField body="ids" type="string" required>
-  Comma-separated list of backpack entry IDs (hats to sacrifice)
-</ParamField>
-
-```json
-{
-  "ids": "1,2,3,4,5"
-}
-```

@@ -1,0 +1,243 @@
+---
+title: "User Settings"
+description: "Manage user settings, trade URL, email notifications, and privacy settings"
+---
+
+## Set mail notifications
+
+```
+POST /user/setMailNotification
+```
+
+**Permission:** Connected + API
+
+Configures which email notifications the user wants to receive.
+
+### Body Parameters
+
+<ParamField body="notifications" type="object" required>
+  Object containing notification preferences
+</ParamField>
+
+### Request Example
+
+```json
+{
+  "notifications": {
+    "tradeCom pleted": true,
+    "offerReceived": true,
+    "buyOrderFilled": true,
+    "itemSold": true,
+    "depositCompleted": false,
+    "marketing": false
+  }
+}
+```
+
+### Response
+
+```json Success
+{
+  "status": "success",
+  "data": {
+    "message": "Notification preferences updated",
+    "notifications": {
+      "tradeCompleted": true,
+      "offerReceived": true,
+      "buyOrderFilled": true,
+      "itemSold": true,
+      "depositCompleted": false,
+      "marketing": false
+    }
+  }
+}
+```
+
+---
+
+## Set mail notification status
+
+```
+POST /user/setMailNotificationStatus
+```
+
+**Permission:** Connected + API
+
+Enables or disables all email notifications at once.
+
+### Body Parameters
+
+<ParamField body="enabled" type="boolean" required>
+  Enable or disable all email notifications
+</ParamField>
+
+### Request Example
+
+```json
+{
+  "enabled": false
+}
+```
+
+### Response
+
+```json Success
+{
+  "status": "success",
+  "data": {
+    "emailNotifications": false,
+    "message": "Email notifications disabled"
+  }
+}
+```
+
+---
+
+## Set privacy setting
+
+```
+POST /user/setPrivacySetting
+```
+
+**Permission:** Connected + API
+
+Updates user privacy settings such as profile visibility, trade history visibility, and inventory privacy.
+
+### Body Parameters
+
+<ParamField body="settings" type="object" required>
+  Object containing privacy settings
+</ParamField>
+
+### Request Example
+
+```json
+{
+  "settings": {
+    "profilePublic": true,
+    "inventoryPublic": false,
+    "tradeHistoryPublic": false,
+    "showOnLeaderboard": true
+  }
+}
+```
+
+### Response
+
+```json Success
+{
+  "status": "success",
+  "data": {
+    "message": "Privacy settings updated",
+    "settings": {
+      "profilePublic": true,
+      "inventoryPublic": false,
+      "tradeHistoryPublic": false,
+      "showOnLeaderboard": true
+    }
+  }
+}
+```
+
+---
+
+## Set trade URL
+
+```
+POST /user/setTradeUrl
+```
+
+**Permission:** Connected + API
+
+Sets or updates the user's Steam trade offer URL. Required for withdrawals and trades.
+
+### Body Parameters
+
+<ParamField body="tradeUrl" type="string" required>
+  Steam trade offer URL (must start with https://steamcommunity.com/tradeoffer/new/?partner=)
+</ParamField>
+
+### Request Example
+
+```json
+{
+  "tradeUrl": "https://steamcommunity.com/tradeoffer/new/?partner=123456789&token=AbCdEfGh"
+}
+```
+
+### Response
+
+```json Success
+{
+  "status": "success",
+  "data": {
+    "tradeUrl": "https://steamcommunity.com/tradeoffer/new/?partner=123456789&token=AbCdEfGh",
+    "validated": true,
+    "message": "Trade URL updated successfully"
+  }
+}
+```
+
+### Error Responses
+
+| Status | Message | Description |
+|--------|---------|-------------|
+| `error` | Invalid trade URL format | The provided URL is not a valid Steam trade offer URL |
+| `error` | Trade URL validation failed | Unable to validate the trade URL with Steam |
+| `error` | Trade URL belongs to different account | The trade URL doesn't match your Steam ID |
+
+<Warning>
+  Make sure your trade URL is valid and matches your Steam account. Invalid URLs will prevent you from withdrawing items.
+</Warning>
+
+---
+
+## Update short URL
+
+```
+POST /user/updateShortUrl
+```
+
+**Permission:** Connected + API
+
+Creates or updates a custom short URL for the user's profile (e.g., mannco.store/u/customname).
+
+### Body Parameters
+
+<ParamField body="shortUrl" type="string" required>
+  Desired short URL slug (3-20 characters, alphanumeric and hyphens only)
+</ParamField>
+
+### Request Example
+
+```json
+{
+  "shortUrl": "my-custom-name"
+}
+```
+
+### Response
+
+```json Success
+{
+  "status": "success",
+  "data": {
+    "shortUrl": "my-custom-name",
+    "fullUrl": "https://mannco.store/u/my-custom-name",
+    "message": "Short URL updated successfully"
+  }
+}
+```
+
+### Error Responses
+
+| Status | Message | Description |
+|--------|---------|-------------|
+| `error` | Short URL already taken | Another user is already using this short URL |
+| `error` | Invalid characters | Short URL contains invalid characters |
+| `error` | Short URL too short/long | Must be between 3-20 characters |
+| `error` | Short URL is reserved | This short URL is reserved for system use |
+
+<Info>
+  Short URLs are unique across all users. Choose wisely as you can only change it once per month.
+</Info>

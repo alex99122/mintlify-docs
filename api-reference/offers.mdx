@@ -1,75 +1,49 @@
 ---
 title: "Offers"
-description: "Create, accept, decline, and manage price offers on items"
+description: "Create, manage, and respond to trade offers between users"
 ---
-
-The offers system allows users to make price offers on items listed by other users, similar to a bidding mechanism.
 
 ## Get received offers
 
 ```
 GET /offers/received
-GET /offers/received/{userid}
 ```
 
-**Permission:** Connected (admin for `{userid}` variant)
+**Permission:** Connected + API
 
-<ParamField path="userid" type="string">
-  SteamID of user (admin only)
+Returns trade offers that the authenticated user has received from other users.
+
+### Query Parameters
+
+<ParamField query="status" type="integer">
+  Filter by offer status (0 = active, 1 = accepted, 2 = declined, 3 = cancelled)
 </ParamField>
 
-Returns all active offers received by the user. The API automatically invalidates offers where:
-- The buyer has insufficient balance (status → `-1`)
-- The offer has expired (status → `-2`)
-- The item is no longer owned by the seller or not on sale (status → `-3`)
+### Response
 
-### Offer type
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | integer | Offer ID |
-| `from` | string | Buyer SteamID |
-| `to` | string | Seller SteamID |
-| `status` | integer | Offer status |
-| `time` | integer | Expiration timestamp |
-| `price` | integer | Offered price in cents |
-| `read` | integer | Whether the offer has been read |
-| `createdAt` | integer | Creation timestamp |
-| `backpackid` | integer | Backpack entry ID |
-| `user` | object | Buyer info (`username`, `avatar`) |
-| `item` | object | Item details (see below) |
-
-### Offer item type
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | string | Item name |
-| `effect` | string | Unusual effect |
-| `url` | string | Item URL slug |
-| `game` | integer | Game App ID |
-| `quality` | string | Item quality |
-| `image` | string | Item image URL |
-| `type` | string | Item type |
-| `craftable` | integer | Craftable status |
-| `assetId` | string | Asset ID |
-| `wear` | float\|null | Wear value |
-| `sheen` | string | Killstreak sheen |
-| `killstreaker` | string | Killstreaker |
-| `spell` | string | Spells |
-| `parts` | string | Strange parts |
-| `state` | integer | Item state |
-
-### Offer statuses
-
-| Status | Description |
-|--------|-------------|
-| `0` | Active / Pending |
-| `1` | Accepted |
-| `2` | Declined by seller |
-| `3` | Removed by buyer |
-| `-1` | Auto-cancelled: buyer insufficient balance |
-| `-2` | Auto-cancelled: offer expired |
-| `-3` | Auto-cancelled: item unavailable |
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "id": 12345,
+      "buyer": "76561198000000000",
+      "seller": "76561198111111111",
+      "items": [
+        {
+          "backpackId": 98765,
+          "name": "Unusual Team Captain",
+          "price": 150000
+        }
+      ],
+      "totalPrice": 150000,
+      "status": 0,
+      "timestamp": "1706745600",
+      "expiresAt": "1706832000"
+    }
+  ]
+}
+```
 
 ---
 
@@ -77,12 +51,21 @@ Returns all active offers received by the user. The API automatically invalidate
 
 ```
 GET /offers/my
-GET /offers/my/{userid}
 ```
 
-**Permission:** Connected (admin for `{userid}` variant)
+**Permission:** Connected + API
 
-Returns all active offers made by the user. Same response structure as received offers, with `user` containing the seller's info instead.
+Returns trade offers that the authenticated user has sent to other users.
+
+### Query Parameters
+
+<ParamField query="status" type="integer">
+  Filter by offer status
+</ParamField>
+
+### Response
+
+Same format as received offers, but from the perspective of the sender.
 
 ---
 
@@ -92,43 +75,100 @@ Returns all active offers made by the user. Same response structure as received 
 POST /offers/create
 ```
 
-**Permission:** Connected
+**Permission:** Connected + API
 
-Creates a new price offer on an item.
+Creates a new trade offer to purchase items from another user.
 
-### Request body
+### Body Parameters
 
-<ParamField body="id" type="integer" required>
-  Asset ID of the item (backpack assetId)
+<ParamField body="items" type="array" required>
+  Array of backpack item IDs to purchase
 </ParamField>
 
-<ParamField body="price" type="number" required>
-  Offered price in cents (must be ≤ current listing price)
+<ParamField body="totalPrice" type="integer">
+  Optional: Total price validation (in cents)
 </ParamField>
+
+### Request Example
 
 ```json
 {
-  "id": 12345678,
-  "price": 10000
+  "items": [12345, 12346],
+  "totalPrice": 250000
 }
 ```
 
-### Validation rules
-
-- Maximum **10** active offers per user (configurable)
-- Offer price must be **≤ current listing price**
-- Cannot offer on your own items
-- Cannot create duplicate offers on the same item
-- If a buy order exists at a higher price, the offer is rejected
-- User must have sufficient balance
-- Offers expire after **24 hours** (configurable)
-
 ### Response
+
+```json Success
+{
+  "status": "success",
+  "data": {
+    "offerId": 67890,
+    "items": [
+      {
+        "backpackId": 12345,
+        "price": 150000
+      },
+      {
+        "backpackId": 12346,
+        "price": 100000
+      }
+    ],
+    "totalPrice": 250000,
+    "expiresAt": "1706832000"
+  }
+}
+```
+
+### Error Responses
+
+| Status | Message | Description |
+|--------|---------|-------------|
+| `error` | Insufficient balance | User doesn't have enough balance to create the offer |
+| `error` | Items not available | One or more items are no longer available for purchase |
+| `error` | Cannot buy your own items | User attempted to create an offer for their own items |
+
+<Warning>
+  Offers expire after 48 hours if not accepted or declined. The buyer's balance is reserved during this time.
+</Warning>
+
+---
+
+## Accept offer
+
+```
+POST /offers/accept
+```
+
+**Permission:** Connected + API
+
+Accepts a received trade offer.
+
+### Body Parameters
+
+<ParamField body="offerId" type="integer" required>
+  The offer ID to accept
+</ParamField>
+
+### Request Example
 
 ```json
 {
-  "success": true,
-  "message": "Offer created successfully"
+  "offerId": 12345
+}
+```
+
+### Response
+
+```json Success
+{
+  "status": "success",
+  "data": {
+    "offerId": 12345,
+    "tradeId": "987654321",
+    "message": "Offer accepted, trade initiated"
+  }
 }
 ```
 
@@ -140,70 +180,75 @@ Creates a new price offer on an item.
 POST /offers/decline
 ```
 
-**Permission:** Connected
+**Permission:** Connected + API
 
-Declines a received offer. Only the seller can decline.
+Declines a received trade offer.
 
-<ParamField body="id" type="integer" required>
-  Offer ID
+### Body Parameters
+
+<ParamField body="offerId" type="integer" required>
+  The offer ID to decline
 </ParamField>
+
+### Request Example
 
 ```json
 {
-  "id": 123
+  "offerId": 12345
+}
+```
+
+### Response
+
+```json Success
+{
+  "status": "success",
+  "data": {
+    "offerId": 12345,
+    "message": "Offer declined"
+  }
 }
 ```
 
 ---
 
-## Remove offer
+## Remove/Cancel offer
 
 ```
 POST /offers/remove
 ```
 
-**Permission:** Connected
+**Permission:** Connected + API
 
-Removes/cancels an offer you made. Only the buyer can remove.
+Cancels a sent offer (only available for offers you created).
 
-<ParamField body="id" type="integer" required>
-  Offer ID
+### Body Parameters
+
+<ParamField body="offerId" type="integer" required>
+  The offer ID to cancel
 </ParamField>
+
+### Request Example
 
 ```json
 {
-  "id": 123
+  "offerId": 12345
 }
 ```
 
----
+### Response
 
-## Accept offer
-
-```
-POST /offers/accept
-```
-
-**Permission:** Connected
-
-Accepts a received offer. This triggers the full transaction:
-
-1. Buyer's balance is deducted by the offer price
-2. Item ownership is transferred to the buyer (state set to `0`)
-3. Seller receives 95% of the offer price (5% marketplace fee)
-4. Transaction is recorded in history for both parties
-5. Daily stats are updated
-
-<ParamField body="id" type="integer" required>
-  Offer ID
-</ParamField>
-
-```json
+```json Success
 {
-  "id": 123
+  "status": "success",
+  "data": {
+    "offerId": 12345,
+    "message": "Offer cancelled",
+    "refundedBalance": 150000
+  }
 }
 ```
 
-<Warning>
-  The 5% marketplace fee is automatically applied. The seller receives `ceil(price × 0.95)`.
-</Warning>
+<Info>
+  Cancelling an offer immediately releases the reserved balance back to the buyer's account.
+</Info>

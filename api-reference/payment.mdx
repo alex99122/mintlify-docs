@@ -1,87 +1,132 @@
 ---
 title: "Payment"
-description: "Endpoints for creating payment invoices with various payment providers"
+description: "Create payment deposits to add balance to your account"
 ---
 
-## Create Payment
-
-<Card title="POST /paiement/:provider" icon="credit-card">
-  Creates a payment invoice for purchasing items or adding balance using the specified payment provider.
-</Card>
+## Create payment
 
 ```
 POST /paiement/{provider}
 ```
 
-**Authentication:** `connected`
-
-**Path Parameters**
+**Permission:** Connected + API
 
 <ParamField path="provider" type="string" required>
-  The payment provider to use (e.g., `"stripe"`, `"paypal"`, etc.).
+  Payment provider identifier (e.g., `payviox`, `mannco`)
 </ParamField>
 
-**Body Parameters**
+Initiates a payment deposit to add balance to the user's account through a payment provider.
 
-<ParamField body="type" type="string" required>
-  Payment type: `"balance"` for adding funds, or `"items"` for purchasing specific items.
+### Body Parameters
+
+<ParamField body="amount" type="integer" required>
+  Amount to deposit in cents (minimum varies by provider, typically 500 = $5)
 </ParamField>
 
-<ParamField body="amount" type="integer">
-  Amount in cents (required when `type` is `"balance"`).
+<ParamField body="currency" type="string" default="USD">
+  Currency code (USD, EUR, etc.)
 </ParamField>
 
-<ParamField body="items" type="array">
-  Array of item details (required when `type` is `"items"`).
+<ParamField body="returnUrl" type="string">
+  URL to redirect to after payment completion
 </ParamField>
 
-<ParamField body="payment_method_id" type="string">
-  Specific payment method identifier (provider-dependent).
+<ParamField body="method" type="string">
+  Specific payment method (credit_card, paypal, crypto, etc.) - varies by provider
 </ParamField>
 
-### Payment Flow
-
-1. The server validates the user and request parameters
-2. Generates a unique transaction UUID
-3. For `"balance"` type: prepares a balance top-up payment
-4. For `"items"` type: validates items availability and prepares item purchase
-5. Records the transaction in the database
-6. Creates an invoice with the payment provider
-
-**Response — Redirect Payment**
+### Request Example
 
 ```json
 {
+  "amount": 10000,
+  "currency": "USD",
+  "returnUrl": "https://yourapp.com/payment/success",
+  "method": "credit_card"
+}
+```
+
+### Response
+
+```json Success
+{
   "status": "success",
   "data": {
-    "url": "https://checkout.stripe.com/pay/..."
+    "paymentId": "PAY_123456789",
+    "provider": "payviox",
+    "amount": 10000,
+    "currency": "USD",
+    "status": "pending",
+    "paymentUrl": "https://payment-provider.com/checkout/xyz123",
+    "expiresAt": "1706835600"
   }
 }
 ```
 
-<ResponseField name="data.url" type="string">
-  Redirect URL to the payment provider's checkout page.
-</ResponseField>
+### Response Fields
 
-**Response — Direct Payment**
+| Field | Type | Description |
+|-------|------|-------------|
+| `paymentId` | string | Unique payment transaction ID |
+| `provider` | string | Payment provider name |
+| `amount` | integer | Deposit amount in cents |
+| `currency` | string | Currency code |
+| `status` | string | Payment status (`pending`, `completed`, `failed`) |
+| `paymentUrl` | string | URL to complete payment (redirect user here) |
+| `expiresAt` | string | Unix timestamp when payment link expires |
 
-```json
-{
-  "status": "success",
-  "data": {
-    "message": "Payment processed successfully"
-  }
-}
-```
+### Error Responses
 
-**Errors**
+| Status | Message | Description |
+|--------|---------|-------------|
+| `error` | Invalid amount | Amount is below minimum or exceeds maximum |
+| `error` | Invalid provider | Unknown or unsupported payment provider |
+| `error` | Provider unavailable | Payment provider is temporarily unavailable |
+| `error` | Invalid currency | Currency not supported by provider |
+| `error` | Rate limit exceeded | Too many payment requests in short period |
 
-| Status | Message |
-|--------|---------|
-| `error` | Provider is required |
-| `error` | Invalid user |
-| `error` | Invalid provider |
-| `error` | Invalid request parameters |
-| `error` | No items found |
-| `error` | Failed to save transaction |
-| `error` | Failed to process payment |
+### Supported Providers
+
+| Provider | Methods | Min/Max | Processing Time |
+|----------|---------|---------|-----------------|
+| `payviox` | Credit Card, PayPal | $5 - $500 | Instant |
+| `mannco` | Various | $10 - $1000 | Instant |
+
+<Info>
+  After creating a payment, redirect the user to the `paymentUrl` to complete the transaction. The system will automatically credit the balance once payment is confirmed via webhook.
+</Info>
+
+---
+
+## Payment Flow
+
+1. **Create Payment:** Client calls `POST /paiement/{provider}` with amount and details
+2. **Redirect:** User is redirected to `paymentUrl` to complete payment
+3. **Process:** User completes payment on provider's site
+4. **Webhook:** Provider sends webhook to Mannco.store confirming payment
+5. **Credit Balance:** Balance is automatically added to user's account
+6. **Notification:** User receives confirmation email and notification
+
+### Payment Status
+
+| Status | Description |
+|--------|-------------|
+| `pending` | Payment created, awaiting completion |
+| `processing` | Payment being verified by provider |
+| `completed` | Payment successful, balance credited |
+| `failed` | Payment failed or was cancelled |
+| `expired` | Payment link expired without completion |
+
+<Warning>
+  Payment links typically expire after 1 hour. Users must complete the payment before expiration.
+</Warning>
+
+<Note>
+  All payments are processed securely through our payment partners. Mannco.store does not store credit card information.
+</Note>
+
+---
+
+## Testing Payments
+
+For testing in sandbox/development environments, providers may offer test credentials and card numbers. Consult the specific provider's documentation for test mode details.

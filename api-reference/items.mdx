@@ -5,15 +5,15 @@ description: "Browse item details, listings, pricing, sales graphs, and buy orde
 
 ## Get item details
 
-<ParamField path="item" type="string" required>
-  Item identifier (numeric ID or URL slug)
-</ParamField>
-
 ```
 GET /item/details/{item}
 ```
 
-**Permission:** Public
+**Permission:** API
+
+<ParamField path="item" type="string" required>
+  Item identifier (numeric ID or URL slug)
+</ParamField>
 
 Returns full item details from the `items` table. You can pass either a numeric item ID or a URL slug.
 
@@ -21,16 +21,19 @@ Returns full item details from the `items` table. You can pass either a numeric 
 
 ```json
 {
-  "id": 12345,
-  "name": "Unusual Burning Flames Team Captain",
-  "effect": "Burning Flames",
-  "url": "unusual-burning-flames-team-captain",
-  "game": 440,
-  "quality": "Unusual",
-  "image": "https://...",
-  "type": "Cosmetic",
-  "craftable": 1,
-  "deal": 150000
+  "status": "success",
+  "data": {
+    "id": 12345,
+    "name": "Unusual Burning Flames Team Captain",
+    "effect": "Burning Flames",
+    "url": "unusual-burning-flames-team-captain",
+    "game": 440,
+    "quality": "Unusual",
+    "image": "https://...",
+    "type": "Cosmetic",
+    "craftable": 1,
+    "deal": 150000
+  }
 }
 ```
 
@@ -51,29 +54,13 @@ Returns full item details from the `items` table. You can pass either a numeric 
 
 ---
 
-## Request item image
-
-```
-GET /item/requestImage/{item}
-```
-
-**Permission:** Public
-
-<ParamField path="item" type="string" required>
-  Item identifier
-</ParamField>
-
-Requests a fresh image render for the specified item.
-
----
-
 ## Get item sales graph
 
 ```
 GET /item/salesGraph/{item}
 ```
 
-**Permission:** Connected
+**Permission:** Connected + API
 
 <ParamField path="item" type="string" required>
   Item identifier
@@ -84,14 +71,17 @@ Returns historical sales data for charting. Data is aggregated from the `items_s
 ### Response
 
 ```json
-[
-  {
-    "itemid": 12345,
-    "date": "2025-01-15",
-    "price": 50000,
-    "nb": 3
-  }
-]
+{
+  "status": "success",
+  "data": [
+    {
+      "itemid": 12345,
+      "date": "2025-01-15",
+      "price": 50000,
+      "nb": 3
+    }
+  ]
+}
 ```
 
 | Field | Type | Description |
@@ -110,7 +100,7 @@ GET /item/listing/count/{item}
 GET /item/listing/count/{item}/{userid}
 ```
 
-**Permission:** Public
+**Permission:** API
 
 <ParamField path="item" type="string" required>
   Item identifier (numeric ID)
@@ -126,7 +116,10 @@ Returns the number of active listings for an item. If `userid` is provided, retu
 
 ```json
 {
-  "nb": 42
+  "status": "success",
+  "data": {
+    "nb": 42
+  }
 }
 ```
 
@@ -139,7 +132,7 @@ GET /item/listing/{item}
 GET /item/listing/{item}/{userid}
 ```
 
-**Permission:** Public
+**Permission:** API
 
 <ParamField path="item" type="string" required>
   Item identifier (numeric ID)
@@ -193,7 +186,7 @@ Returns paginated listings sorted by price ascending. Each listing includes back
 GET /item/buyorderList/{item}
 ```
 
-**Permission:** Public
+**Permission:** API
 
 <ParamField path="item" type="string" required>
   Item identifier (numeric ID)
@@ -204,13 +197,16 @@ Returns all active buy orders for an item, grouped by price and sorted descendin
 ### Response
 
 ```json
-[
-  {
-    "price": 15000,
-    "itemid": 12345,
-    "nb": 5
-  }
-]
+{
+  "status": "success",
+  "data": [
+    {
+      "price": 15000,
+      "itemid": 12345,
+      "nb": 5
+    }
+  ]
+}
 ```
 
 | Field | Type | Description |
@@ -227,7 +223,7 @@ Returns all active buy orders for an item, grouped by price and sorted descendin
 GET /item/pricing/{item}
 ```
 
-**Permission:** Connected
+**Permission:** Connected + API
 
 <ParamField path="item" type="string" required>
   Item identifier (numeric ID)
@@ -239,11 +235,14 @@ Returns calculated pricing data for an item including lowest sale, highest buy o
 
 ```json
 {
-  "item_id": 12345,
-  "lowest_sale_price": 15000,
-  "lowest_buy_order": 12000,
-  "steam_price": 18000,
-  "suggested_price": 14999
+  "status": "success",
+  "data": {
+    "item_id": 12345,
+    "lowest_sale_price": 15000,
+    "lowest_buy_order": 12000,
+    "steam_price": 18000,
+    "suggested_price": 14999
+  }
 }
 ```
 
@@ -267,7 +266,7 @@ Returns calculated pricing data for an item including lowest sale, highest buy o
 GET /item/pricing/bulk
 ```
 
-**Permission:** Connected
+**Permission:** Connected + API
 
 <ParamField query="items" type="string" required>
   Comma-separated item IDs (maximum 20 items)
@@ -275,19 +274,21 @@ GET /item/pricing/bulk
 
 Returns pricing data for multiple items at once.
 
+### Example
+
 ```
 GET /item/pricing/bulk?items=12345,67890,11111
 ```
 
 ---
 
-## Get item details from backpack ID
+## Get item details from backpack ID (TF2)
 
 ```
 GET /item/details/fromid/{backpackid}
 ```
 
-**Permission:** Public
+**Permission:** API
 
 <ParamField path="backpackid" type="string" required>
   Backpack asset ID
@@ -297,13 +298,13 @@ Returns full backpack + item details for a TF2 item by its asset ID. Joins `back
 
 ---
 
-## Get CS2 item details from backpack ID
+## Get item details from backpack ID (CS2)
 
 ```
 GET /item/cs/details/fromid/{backpackid}
 ```
 
-**Permission:** Public
+**Permission:** API
 
 <ParamField path="backpackid" type="string" required>
   Backpack asset ID
@@ -319,22 +320,6 @@ Same as above but specifically for CS2 items with wear, sticker, and pattern inf
 GET /item/getRaffleItems
 ```
 
-**Permission:** Connected
+**Permission:** Connected + API
 
 Returns all items in the connected user's inventory (state = 0) that can be used to create giveaways. Includes full item details with inspection values.
-
----
-
-## Get buy order and lowest sales prices
-
-```
-GET /infos/prices/buyorderAndLowestSales
-```
-
-**Permission:** Public
-
-Returns a CSV-like string with buy order and lowest sale prices for all items. Format: `itemId;buyOrderPrice;lowestSalePrice,`
-
-<Info>
-  This endpoint is cached for 3 minutes. Add `?update=1` to force a refresh.
-</Info>
