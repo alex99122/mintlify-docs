@@ -38,8 +38,9 @@ Configures which email notifications the user wants to receive.
 
 ```json Success
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "message": "Notification preferences updated",
     "notifications": {
       "tradeCompleted": true,
@@ -83,8 +84,9 @@ Enables or disables all email notifications at once.
 
 ```json Success
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "emailNotifications": false,
     "message": "Email notifications disabled"
   }
@@ -126,8 +128,9 @@ Updates user privacy settings such as profile visibility, trade history visibili
 
 ```json Success
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "message": "Privacy settings updated",
     "settings": {
       "profilePublic": true,
@@ -169,8 +172,9 @@ Sets or updates the user's Steam trade offer URL. Required for withdrawals and t
 
 ```json Success
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "tradeUrl": "https://steamcommunity.com/tradeoffer/new/?partner=123456789&token=AbCdEfGh",
     "validated": true,
     "message": "Trade URL updated successfully"
@@ -220,8 +224,9 @@ Creates or updates a custom short URL for the user's profile (e.g., mannco.store
 
 ```json Success
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "shortUrl": "my-custom-name",
     "fullUrl": "https://mannco.store/u/my-custom-name",
     "message": "Short URL updated successfully"

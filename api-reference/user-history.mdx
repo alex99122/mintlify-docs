@@ -17,8 +17,9 @@ Returns summary statistics about the user's sales activity.
 
 ```json
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "totalSales": 156,
     "totalRevenue": 450000,
     "averageSalePrice": 2884,
@@ -45,8 +46,9 @@ Returns daily sales data for charting purposes (last 30 days).
 
 ```json
 {
-  "status": "success",
-  "data": [
+  "err": false,
+  "success": true,
+  "content": [
     {
       "date": "2025-01-15",
       "sales": 3,
@@ -91,8 +93,9 @@ Returns paginated history of all balance changes (deposits, purchases, sales, wi
 
 ```json
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "transactions": [
       {
         "id": 98765,
@@ -160,8 +163,9 @@ Returns paginated history of all items purchased by the user.
 
 ```json
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "purchases": [
       {
         "id": 12345,
@@ -208,8 +212,9 @@ Returns paginated history of all items sold by the user.
 
 ```json
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "sales": [
       {
         "id": 67890,
@@ -256,8 +261,9 @@ Returns paginated history of all cashout requests.
 
 ```json
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "cashouts": [
       {
         "id": 4567,
@@ -347,8 +353,9 @@ Returns detailed information about a specific transaction.
 
 ```json
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "id": 12345,
     "type": "sale",
     "amount": 150000,

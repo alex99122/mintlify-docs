@@ -17,8 +17,9 @@ Terminates the current user session and invalidates the JWT token.
 
 ```json
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "disconnect": true
   }
 }
@@ -40,8 +41,9 @@ Terminates all active sessions for the authenticated user across all devices.
 
 ```json
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "message": "All sessions have been disconnected successfully"
   }
 }
@@ -71,8 +73,9 @@ Terminates a specific session by its ID. You can get session IDs from the IP/ses
 
 ```json
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "message": "Session disconnected successfully"
   }
 }
@@ -94,8 +97,9 @@ Returns detailed information about the authenticated user's account.
 
 ```json
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "informations": {
       "steamId": "76561198000000000",
       "balance": 250000,
@@ -132,8 +136,9 @@ Returns the current balance and reserved balance for the authenticated user.
 
 ```json
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "balance": 250000
   }
 }
@@ -175,8 +180,9 @@ Retrieves a paginated list of login sessions with IP information, location, and 
 
 ```json
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "values": [
       {
         "id": 12345,
@@ -215,8 +221,9 @@ Returns the user's registered contact email address.
 
 ```json
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "address": "user@example.com"
   }
 }
@@ -248,8 +255,9 @@ Returns recent notifications for the authenticated user.
 
 ```json
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "count": 3,
     "paymentReviews": 1
   }

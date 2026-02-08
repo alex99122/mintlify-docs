@@ -29,8 +29,9 @@ GET /utils/tradeurlCheck?tradeUrl=https://steamcommunity.com/tradeoffer/new/?par
 
 ```json Valid URL
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "valid": true,
     "partnerId": "123456789",
     "token": "AbCdEfGh",
@@ -42,8 +43,9 @@ GET /utils/tradeurlCheck?tradeUrl=https://steamcommunity.com/tradeoffer/new/?par
 
 ```json Invalid URL
 {
-  "status": "error",
-  "data": {
+  "err": true,
+  "success": false,
+  "content": {
     "valid": false,
     "message": "Invalid trade URL format"
   }

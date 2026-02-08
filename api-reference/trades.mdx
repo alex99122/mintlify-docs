@@ -19,8 +19,9 @@ Returns an array of trades with status = 0 (pending).
 
 ```json
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "trades": [
       {
         "id": 123456,
@@ -86,8 +87,9 @@ Returns paginated array of all trades.
 
 ```json
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "trades": [
       {
         "id": 123456,
@@ -123,8 +125,9 @@ Resends a failed or cancelled trade offer for the authenticated user. The system
 
 ```json Success
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "message": "Trade resent successfully",
     "trade_id": 123456,
     "code": "ABCDEFGH"

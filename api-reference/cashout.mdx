@@ -41,8 +41,9 @@ Initiates a cashout request to withdraw balance from the user's account to a pay
 
 ```json Success
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "cashoutId": 4567,
     "amount": 100000,
     "method": "payoneer",

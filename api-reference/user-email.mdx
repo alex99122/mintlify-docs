@@ -31,8 +31,9 @@ Initiates an email change request. Requires 2FA validation.
 
 ```json Success
 {
-  "status": "success",
-  "data": "Email change request created successfully"
+  "err": false,
+  "success": true,
+  "content": "Email change request created successfully"
 }
 ```
 
@@ -79,8 +80,9 @@ Completes an email change using the verification code sent to the new email addr
 
 ```json Success
 {
-  "status": "success",
-  "data": "Email change validation success"
+  "err": false,
+  "success": true,
+  "content": "Email change validation success"
 }
 ```
 

@@ -27,8 +27,9 @@ Returns a comprehensive price list for all items available on the platform.
 
 ```json
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "lastUpdate": "1706745600",
     "itemCount": 45678,
     "prices": [
@@ -94,8 +95,9 @@ Returns a compact CSV-like string with buy order and lowest sale prices for all 
 
 ```json
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "lastUpdate": "1706745600",
     "format": "itemId;buyOrderPrice;lowestSalePrice",
     "prices": "12345;145000;150000,67890;7500;8000,11111;25000;26500,..."
@@ -172,8 +174,9 @@ Returns recent public sales data for market analysis.
 
 ```json
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "sales": [
       {
         "itemId": 12345,

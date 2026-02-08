@@ -23,8 +23,9 @@ Returns trade offers that the authenticated user has received from other users.
 
 ```json
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "offers": [
       {
         "id": 12345,
@@ -85,7 +86,7 @@ Returns trade offers that the authenticated user has sent to other users.
 
 ### Response
 
-Same format as received offers, but from the perspective of the sender. Note: Currently returns an empty string instead of the offers array.
+Same format as received offers, but from the perspective of the sender.
 
 ---
 
@@ -122,8 +123,9 @@ Creates a new trade offer to purchase items from another user.
 
 ```json Success
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "message": "Offer created successfully"
   }
 }
@@ -171,8 +173,9 @@ Accepts a received trade offer.
 
 ```json Success
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "message": "Offer accepted successfully"
   }
 }
@@ -208,8 +211,9 @@ Declines a received trade offer.
 
 ```json Success
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "message": "Offer declined successfully"
   }
 }
@@ -245,8 +249,9 @@ Cancels a sent offer (only available for offers you created).
 
 ```json Success
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "message": "Offer removed successfully"
   }
 }

@@ -113,8 +113,9 @@ Returns historical sales data for charting. Data is aggregated from the `items_s
 
 ```json
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "values": [
       {
         "date": "2025-01-15 00:00:00",
@@ -135,8 +136,9 @@ Returns historical sales data for charting. Data is aggregated from the `items_s
 
 ```json
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "values": [
       {
         "first_date": "2025-01-13",
@@ -292,14 +294,17 @@ Returns all active buy orders for an item, grouped by price and sorted descendin
 
 ```json
 {
-  "status": "success",
-  "data": [
-    {
-      "price": 15000,
-      "itemid": 12345,
-      "nb": 5
-    }
-  ]
+  "err": false,
+  "success": true,
+  "content": {
+    "informations": [
+      {
+        "price": 15000,
+        "itemid": 12345,
+        "nb": 5
+      }
+    ]
+  }
 }
 ```
 
@@ -329,8 +334,9 @@ Returns calculated pricing data for an item including lowest sale, highest buy o
 
 ```json
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "item_id": 12345,
     "lowest_sale_price": 15000,
     "lowest_buy_order": 12000,

@@ -50,8 +50,9 @@ Initiates a payment deposit to add balance to the user's account through a payme
 
 ```json Success
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "paymentId": "PAY_123456789",
     "provider": "payviox",
     "amount": 10000,

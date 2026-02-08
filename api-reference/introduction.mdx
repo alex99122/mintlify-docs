@@ -49,32 +49,47 @@ Many endpoints have an admin variant that accepts a `{userid}` path parameter to
 
 ## Response format
 
-All API responses return JSON. Successful responses typically have this structure:
+All API responses return JSON with a **standardized structure**:
+
+### Success responses
 
 ```json
 {
-  "status": "success",
-  "data": { ... }
+  "err": false,
+  "success": true,
+  "content": {
+    /* Response data here */
+  }
 }
 ```
 
-Error responses follow this pattern:
+### Error responses
 
 ```json
 {
-  "status": "error",
-  "message": "Description of the error"
+  "err": true,
+  "success": false,
+  "content": "Error message description"
 }
 ```
+
+### Response fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `err` | boolean | `false` for success, `true` for errors |
+| `success` | boolean | `true` for success, `false` for errors |
+| `content` | object/string | Response data (object) for success, error message (string) for errors |
 
 ## Error codes
 
-| HTTP Code | Description |
-|-----------|-------------|
-| `200` | Success |
-| `401` | Not authenticated — user must log in |
-| `403` | Forbidden — insufficient permissions, invalid CSRF, or invalid API key |
-| `404` | Endpoint not found |
+| HTTP Code | Response Type | Description |
+|-----------|---------------|-------------|
+| `200` | Success | Request completed successfully |
+| `300` | Error | General error (business logic error) |
+| `403` | Forbidden/Unauthorized | Insufficient permissions, invalid CSRF, or invalid API key |
+| `404` | Not Found | Endpoint or resource not found |
+| `500` | Server Error | Internal server error |
 
 ### Specific error responses
 

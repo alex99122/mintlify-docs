@@ -1,6 +1,6 @@
 ---
 title: "Inventory"
-description: "Manage user inventory: view items on sale, items in inventory, and withdraw items"
+description: "Manage user inventory: view items on sale, items in inventory, set prices, and withdraw items"
 ---
 
 ## Get items on sale
@@ -19,8 +19,9 @@ Returns an array of backpack items with state = 1 (on sale), including full item
 
 ```json
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "items": [
       {
         "ids": "987654321,987654322",
@@ -63,8 +64,9 @@ Returns an array of backpack items with state = 0, including full item details a
 
 ```json
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "items": [
       {
         "ids": "987654322",
@@ -90,6 +92,84 @@ Returns an array of backpack items with state = 0, including full item details a
 
 ---
 
+## Set item price
+
+```
+POST /inventory/price
+```
+
+**Permission:** Connected + API
+
+Set a price for items in your inventory and automatically match them with existing buy orders. If a buy order exists at or above your price, the item is instantly sold. Otherwise, the item is listed for sale at the specified price.
+
+### Body Parameters
+
+<ParamField body="ids" type="string" required>
+  Comma-separated list of asset IDs to price (e.g., "12345678,87654321")
+</ParamField>
+
+<ParamField body="price" type="integer" required>
+  Price in cents (USD). Must be between 1 and 5,000,000 cents ($0.01 - $50,000)
+</ParamField>
+
+### Request Example
+
+```json
+{
+  "ids": "12345678,87654321",
+  "price": 150
+}
+```
+
+### Response
+
+```json Success
+{
+  "err": false,
+  "success": true,
+  "content": {
+    "message": "ok"
+  }
+}
+```
+
+### How It Works
+
+1. **Validation**: The system validates item ownership, price limits, CS:GO trade lock status, and availability
+2. **Buy Order Matching**: If a buy order exists at or above your price:
+   - Item is instantly sold to the buyer
+   - Buyer's balance is debited
+   - Seller receives 95% of the price (5% platform fee)
+   - Transaction is recorded in history
+3. **Listing**: If no buy order matches, the item is listed for sale at your specified price
+
+### Price Limits
+ 
+
+<Info>
+  Over 400 items have specific price limits. If your item exceeds the limit, you'll receive an error with the maximum allowed price.
+</Info>
+
+### CS:GO Trade Lock
+
+<Warning>
+  CS:GO items with an active 7-day trade hold cannot be listed for sale. This applies to items that have not completed their 7-day Steam trade hold period.
+</Warning>
+ 
+
+### Error Responses
+
+| Status | Message | Description |
+|--------|---------|-------------|
+| `error` | Missing required parameters | ids or price parameter is missing |
+| `error` | Invalid ids format | ids must be a string |
+| `error` | Price too high or invalid | Price must be between 1 and 5,000,000 cents |
+| `error` | Item not found or not owned | Item doesn't exist or doesn't belong to you |
+| `error` | Price limit exceeded | Item price exceeds the maximum allowed for this item type |
+| `error` | This item will be locked for 7 days | CS:GO item has an active trade hold |
+
+---
+
 ## Withdraw items
 
 ```
@@ -102,15 +182,15 @@ Initiates a trade offer to withdraw items from the user's Mannco.store inventory
 
 ### Body Parameters
 
-<ParamField body="items" type="array" required>
-  Array of backpack item IDs to withdraw
+<ParamField body="ids" type="string" required>
+  Comma-separated list of asset IDs to withdraw (e.g., "12345678,87654321")
 </ParamField>
 
 ### Request Example
 
 ```json
 {
-  "items": [12345, 12346, 12347]
+  "ids": "12345678,87654321"
 }
 ```
 
@@ -118,8 +198,9 @@ Initiates a trade offer to withdraw items from the user's Mannco.store inventory
 
 ```json Success
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "message": "Items withdrawal processed",
     "updated": 3,
     "locked": 0
@@ -138,11 +219,71 @@ Initiates a trade offer to withdraw items from the user's Mannco.store inventory
 
 | Status | Message | Description |
 |--------|---------|-------------|
+| `error` | Missing required parameter: ids | ids parameter is missing |
+| `error` | No valid item IDs provided | All provided IDs are invalid |
 | `error` | Items not found | One or more item IDs don't exist or don't belong to the user |
 | `error` | Items not available for withdrawal | Items are in active trades or pending withdrawal |
-| `error` | Trade URL not set | User must set their Steam trade URL first |
-| `error` | Bot offline | The bot holding the items is currently offline |
 
 <Warning>
   Items must have state = 0 (in inventory) or state = 1 (on sale) to be withdrawable. Items in active trades (state = 3) or pending withdrawal (state = 2) cannot be withdrawn.
 </Warning>
+
+---
+
+## Item States
+
+Understanding item states in the inventory system:
+
+| State | Description | Can Sell? | Can Withdraw? |
+|-------|-------------|-----------|---------------|
+| 0 | In inventory | ✅ Yes | ✅ Yes |
+| 1 | On sale | ✅ Yes | ✅ Yes |
+| 2 | Pending withdrawal | ❌ No | ❌ No |
+| 3 | In active trade | ❌ No | ❌ No |
+
+---
+ 
+
+## Code Examples
+
+### List items for sale
+
+```javascript
+// Set price for multiple items
+const response = await fetch('https://api.mannco.store/inventory/price', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_TOKEN',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    ids: '12345678,87654321,11223344',
+    price: 150 // $1.50
+  })
+});
+
+const result = await response.json();
+console.log(result);
+```
+
+### Withdraw items
+
+```javascript
+// Withdraw multiple items from inventory
+const response = await fetch('https://api.mannco.store/inventory/withdraw', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_TOKEN',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    ids: '12345678,87654321'
+  })
+});
+
+const result = await response.json();
+console.log(`Withdrawn: ${result.content.updated} items`);
+console.log(`Locked: ${result.content.locked} items`);
+```
+  
+ 

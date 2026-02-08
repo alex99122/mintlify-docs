@@ -41,8 +41,9 @@ Creates a buy order for a specific item at a specified price.
 
 ```json Success
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "details": "Inserted"
   }
 }
@@ -101,8 +102,9 @@ Updates an existing buy order's price or quantity.
 
 ```json Success
 {
-  "status": "success",
-  "data": "Buy order updated"
+  "err": false,
+  "success": true,
+  "content": "Buy order updated"
 }
 ```
 
@@ -140,8 +142,9 @@ Cancels and removes a buy order, releasing the reserved balance.
 
 ```json Success
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "details": "Removed"
   }
 }
@@ -167,8 +170,9 @@ Returns all active buy orders for a specific item created by the authenticated u
 
 ```json
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "informations": {
       "id": 98765,
       "steamid": "76561198000000000",
@@ -218,8 +222,9 @@ Returns all active buy orders for the authenticated user across all items.
 
 ```json
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "values": [
       {
         "id": 98765,

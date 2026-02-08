@@ -17,8 +17,9 @@ Generates a new 2FA secret and QR code for the user to set up two-factor authent
 
 ```json
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "qrCode": "https://chart.googleapis.com/chart?chs=200x200&chld=M|0&cht=qr&chl=...",
     "base32": "JBSWY3DPEHPK3PXP",
     "key": "randomGeneratedKey123"
@@ -74,8 +75,9 @@ Validates a 2FA code and enables 2FA for the account (if setting up) or validate
 
 ```json Success
 {
-  "status": "success",
-  "data": "2FA activated"
+  "err": false,
+  "success": true,
+  "content": "2FA activated"
 }
 ```
 
@@ -121,8 +123,9 @@ Initiates a 2FA reset request. A verification email will be sent to the user's r
 
 ```json Success
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "requestId": 98765,
     "emailSent": true,
     "expiresAt": "1706835600",
@@ -170,8 +173,9 @@ Completes a 2FA reset using the verification code sent to email.
 
 ```json Success
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "twoFactorEnabled": false,
     "message": "Two-factor authentication has been disabled. You can set it up again from your account settings."
   }

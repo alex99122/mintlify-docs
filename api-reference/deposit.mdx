@@ -21,8 +21,9 @@ Returns pricing information and available items from the user's Steam inventory 
 
 ```json
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "informations": [
       {
         "assetid": "123456789",
@@ -84,8 +85,9 @@ Returns a list of available trade bots for the specified game, including their s
 
 ```json
 {
-  "status": "success",
-  "data": [
+  "err": false,
+  "success": true,
+  "content": [
     {
       "steamId": "76561198000000000",
       "name": "Mannco Bot #1",
@@ -118,8 +120,9 @@ Checks the current status of a deposit trade offer.
 
 ```json
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "tradeId": "987654321",
     "status": 3,
     "statusText": "Completed",
@@ -184,8 +187,9 @@ Pre-sets custom prices for items before creating a deposit trade. Useful for neg
 
 ```json Success
 {
-  "status": "success",
-  "data": {
+  "err": false,
+  "success": true,
+  "content": {
     "pricesSet": 2,
     "expiresAt": "1706749200",
     "message": "Prices set for upcoming trade. Create trade within 10 minutes."
