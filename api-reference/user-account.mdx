@@ -120,6 +120,29 @@ Returns detailed information about the authenticated user's account.
 }
 ```
 
+### Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `steamId` | string | Steam ID (64-bit) |
+| `balance` | number | Account balance in cents |
+| `skrill` | string | Registered email address |
+| `tradeurl` | string | Steam trade offer URL |
+| `since` | string | Account creation timestamp |
+| `image` | string | Steam avatar URL |
+| `2fa` | string | Two-factor authentication status: `"true"` or `"false"` (string, not boolean) |
+| `name` | string | Steam display name |
+| `lastactivity` | string | Last activity timestamp |
+| `discordtag` | string | Discord tag (username#discriminator) |
+| `discord` | string | Discord user ID |
+| `shorturl` | string | Custom short URL identifier |
+| `message` | string | User bio/message |
+| `notification` | number | Notification settings |
+
+<Warning>
+Note: The `2fa` field is returned as a string (`"true"` or `"false"`), not a boolean value.
+</Warning>
+
 ---
 
 ## Get balance
@@ -214,7 +237,7 @@ GET /user/getContactMail
 ```
 
 **Permission:** Connected + API
-
+ 
 Returns the user's registered contact email address.
 
 ### Response

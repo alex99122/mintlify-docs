@@ -26,7 +26,8 @@ Returns pricing information and available items from the user's Steam inventory 
   "content": {
     "informations": [
       {
-        "assetid": "123456789",
+        "assetid": "123456789;987654321",
+        "count": 2,
         "market_hash_name": "Unusual Burning Flames Team Captain",
         "unusual": "Burning Flames",
         "craft": "",
@@ -34,11 +35,16 @@ Returns pricing information and available items from the user's Steam inventory 
         "sheen": "",
         "killstreaker": "",
         "image": "https://...",
-        "class": "Hat",
+        "class": "Scout;Soldier",
         "quality": "Unusual",
-        "depositkey": "12345_0",
-        "price": 150000,
-        "disabled": ""
+        "item_id": 5678,
+        "url": "unusual-burning-flames-team-captain",
+        "depositkey": {
+          "123456789": "a1b2c3d4e5f6...",
+          "987654321": "f6e5d4c3b2a1..."
+        },
+        "nb_high_stock": 45,
+        "high_stock_limit": 200
       }
     ]
   }
@@ -49,20 +55,47 @@ Returns pricing information and available items from the user's Steam inventory 
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `assetid` | string | Steam asset ID |
+| `assetid` | string | Steam asset ID (semicolon-separated for grouped items) |
 | `market_hash_name` | string | Steam Market name |
-| `unusual` | string | Unusual effect name (if applicable) |
-| `craft` | string | "uncraftable " if not craftable, empty otherwise |
-| `spell` | string | Spell names separated by semicolons |
-| `sheen` | string | Sheen effect |
-| `killstreaker` | string | Killstreaker effect |
-| `price` | integer | Mannco.store buy price in cents |
-| `disabled` | string | Reason if item is not accepted (e.g., "blacklist", "highstock") |
-| `depositkey` | string | Unique identifier for the deposit item |
 | `image` | string | Item image URL |
+| `item_id` | integer/string | Item ID from database or empty string |
+| `url` | string | Item URL slug or empty |
+| `depositkey` | object | Object mapping assetid to deposit key hash: `{"assetid1": "hash1", "assetid2": "hash2"}` |
+| `count` | integer | Number of grouped items |
+| `disabled` | string | Reason if item is not accepted: `"blacklist"` or `"highstock"` |
+| `nb_high_stock` | integer | Current stock count for this item |
+| `high_stock_limit` | integer | Maximum stock threshold (if not disabled) |
+
+**TF2-specific fields (game 440):**
+| `unusual` | string | Unusual effect name |
+| `paintcolor` | string | Paint color |
+| `craft` | string | `"uncraftable "` if not craftable, empty otherwise |
+| `spell` | string | Spell names (semicolon-separated) |
+| `sheen` | string | Killstreak sheen effect (semicolon-separated) |
+| `killstreaker` | string | Killstreaker effect (semicolon-separated) |
+| `class` | string | Item class (e.g., "Scout", "Soldier") |
+| `quality` | string | Item quality (e.g., "Unusual", "Strange") |
+
+**CS:GO/CS2-specific fields (game 730):**
+| `type` | string | Item type (e.g., "Rifle", "Knife") |
+| `quality` | string | Item quality |
+| `rarity` | string | Item rarity (e.g., "Covert", "Classified") |
+| `wear` | float | Wear value (0.00-1.00) |
+| `pattern` | integer | Pattern seed/template |
+| `stickers` | array | Array of sticker objects: `[{"url": "string", "name": "string"}]` |
+| `keychains` | array | Array of keychain objects: `[{"url": "string", "name": "string"}]` |
+
+**DOTA2-specific fields (game 570):**
+| `type` | string | Item type |
+| `quality` | string | Item quality |
+| `rarity` | string | Item rarity |
+
+**RUST-specific fields (game 252490):**
+| `type` | string | Item type |
+| `category` | string | Item category |
 
 <Info>
-  Only items that are tradable and have a valid price will have a non-empty `depositkey`. Items with `disabled` field set cannot be deposited.
+  The `depositkey` is an object mapping each assetid to its unique deposit hash (SHA256). Items with the `disabled` field set cannot be deposited. Items are grouped by game-specific attributes (TF2: item_id|sheen|spell|killstreaker; CS:GO: item_id|wear|pattern).
 </Info>
 
 ---
@@ -82,7 +115,7 @@ GET /deposit/botList/{game}
 Returns a list of available trade bots for the specified game, including their status and capacity.
 
 ### Response
-
+ 
 ```json
 {
   "err": false,

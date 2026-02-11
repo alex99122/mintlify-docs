@@ -3,6 +3,24 @@ title: "Offers"
 description: "Create, manage, and respond to trade offers between users"
 ---
 
+## Offer Status Codes
+
+| Status | Meaning | Description |
+| ------ | ------- | ----------- |
+| `0` | **Active** | Pending offer, awaiting response |
+| `1` | **Accepted** | Offer was accepted and completed |
+| `2` | **Declined** | Offer was declined by recipient |
+| `3` | **Removed/Cancelled** | Offer was cancelled by creator |
+| `-1` | **Invalid Balance** | Buyer has insufficient balance |
+| `-2` | **Expired** | Offer expired (past expiration time) |
+| `-3` | **Invalid Item** | Item no longer available or not owned by recipient |
+
+<Info>
+Offers are automatically validated when retrieved via `GET` endpoints. Invalid offers (expired, insufficient balance, item unavailable) are automatically updated with negative status codes.
+</Info>
+
+---
+
 ## Get received offers
 
 ```
@@ -11,13 +29,7 @@ GET /offers/received
 
 **Permission:** Connected + API
 
-Returns trade offers that the authenticated user has received from other users.
-
-### Query Parameters
-
-<ParamField query="status" type="integer">
-  Filter by offer status (0 = active, 1 = accepted, 2 = declined, 3 = cancelled)
-</ParamField>
+Returns trade offers that the authenticated user has received from other users (where current user is the seller).
 
 ### Response
 
@@ -35,7 +47,7 @@ Returns trade offers that the authenticated user has received from other users.
         "time": 1706832000,
         "price": 150000,
         "read": 0,
-        "createdAt": "1706745600",
+        "createdAt": 1706745600,
         "backpackid": 98765,
         "user": {
           "username": "BuyerName",
@@ -66,6 +78,26 @@ Returns trade offers that the authenticated user has received from other users.
 }
 ```
 
+### Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | integer | Offer ID |
+| `from` | string | Buyer's Steam ID |
+| `to` | string | Seller's Steam ID (current user) |
+| `status` | integer | Offer status code (see table above) |
+| `time` | integer | Expiration timestamp (Unix time) |
+| `price` | integer | Offer price in cents |
+| `read` | integer | Read status: `0` = unread, `1` = read |
+| `createdAt` | integer | Creation timestamp |
+| `backpackid` | integer | Backpack item ID |
+| `user` | object | Buyer information (username, avatar) |
+| `item` | object | Full item details from backpack + items tables |
+
+<Info>
+The endpoint automatically validates offers and filters out those with status < 0 (invalid). Only active and completed offers are returned.
+</Info>
+
 ---
 
 ## Get my offers
@@ -76,17 +108,48 @@ GET /offers/my
 
 **Permission:** Connected + API
 
-Returns trade offers that the authenticated user has sent to other users.
-
-### Query Parameters
-
-<ParamField query="status" type="integer">
-  Filter by offer status
-</ParamField>
+Returns trade offers that the authenticated user has sent to other users (where current user is the buyer).
 
 ### Response
 
-Same format as received offers, but from the perspective of the sender.
+```json
+{
+  "err": false,
+  "success": true,
+  "content": [
+    {
+      "id": 12345,
+      "from": "76561198000000000",
+      "to": "76561198111111111",
+      "status": 0,
+      "time": 1706832000,
+      "price": 150000,
+      "read": 0,
+      "createdAt": 1706745600,
+      "backpackid": 98765,
+      "user": {
+        "username": "SellerName",
+        "avatar": "https://avatars.steamstatic.com/..."
+      },
+      "item": {
+        "name": "Team Captain",
+        "effect": "Burning Flames",
+        "url": "unusual_team_captain",
+        "game": 440,
+        "quality": "Unusual",
+        "image": "https://...",
+        "type": "Hat",
+        "craftable": 1,
+        "assetId": "987654321"
+      }
+    }
+  ]
+}
+```
+
+<Warning>
+Note: `GET /offers/my` returns an array directly in `content`, while `GET /offers/received` wraps the array in `{offers: [...]}`.
+</Warning>
 
 ---
 
@@ -98,24 +161,24 @@ POST /offers/create
 
 **Permission:** Connected + API
 
-Creates a new trade offer to purchase items from another user.
+Creates a new trade offer to purchase an item from another user.
 
 ### Body Parameters
 
-<ParamField body="items" type="array" required>
-  Array of backpack item IDs to purchase
+<ParamField body="id" type="string" required>
+  Item assetId (Steam asset identifier)
 </ParamField>
 
-<ParamField body="totalPrice" type="integer">
-  Optional: Total price validation (in cents)
+<ParamField body="price" type="integer" required>
+  Offer price in cents (must be &gt;= 0 and &lt; current item price)
 </ParamField>
 
 ### Request Example
 
 ```json
 {
-  "items": [12345, 12346],
-  "totalPrice": 250000
+  "id": "987654321",
+  "price": 145000
 }
 ```
 
@@ -133,15 +196,24 @@ Creates a new trade offer to purchase items from another user.
 
 ### Error Responses
 
-| Status | Message | Description |
-|--------|---------|-------------|
-| `error` | Insufficient balance | User doesn't have enough balance to create the offer |
-| `error` | Items not available | One or more items are no longer available for purchase |
-| `error` | Cannot buy your own items | User attempted to create an offer for their own items |
-
-<Warning>
-  Offers expire after 48 hours if not accepted or declined. The buyer's balance is reserved during this time.
-</Warning>
+| Error Message | Description |
+|---------------|-------------|
+| `Missing required parameters: id and price` | Missing required fields |
+| `Invalid price` | Price is negative |
+| `Too many active offers` | Exceeds maximum active offers (default: 10) |
+| `Item not found or not available` | Item doesn't exist or not for sale (state != 1) |
+| `This item cannot be offered` | Item is blacklisted |
+| `Offer already exists` | Duplicate offer for the same item |
+| `There is a buyorder for this item at a higher price` | Buy order exists with better price |
+| `Cannot buy your own item` | Attempting to create offer for own item |
+| `Price must be lower than or equal to current price` | Offer price exceeds listing price |
+| `Insufficient balance` | Buyer doesn't have enough balance |
+ 
+<Info>
+**Configuration:**
+- `maxOffer`: Maximum active offers per user (default: 10)
+- `maxDurationOffer`: Offer expiration in seconds (86400 = 24 hours) 
+</Info>
 
 ---
 
@@ -153,11 +225,11 @@ POST /offers/accept
 
 **Permission:** Connected + API
 
-Accepts a received trade offer.
+Accepts a received trade offer and completes the transaction (seller action).
 
 ### Body Parameters
 
-<ParamField body="offerId" type="integer" required>
+<ParamField body="id" type="integer" required>
   The offer ID to accept
 </ParamField>
 
@@ -165,7 +237,7 @@ Accepts a received trade offer.
 
 ```json
 {
-  "offerId": 12345
+  "id": 12345
 }
 ```
 
@@ -181,6 +253,16 @@ Accepts a received trade offer.
 }
 ```
 
+```json Error
+{
+  "err": true,
+  "success": false,
+  "content": {
+    "message": "Failed to accept offer or offer not found"
+  }
+}
+```
+ 
 ---
 
 ## Decline offer
@@ -191,11 +273,11 @@ POST /offers/decline
 
 **Permission:** Connected + API
 
-Declines a received trade offer.
+Declines a received trade offer (seller action).
 
 ### Body Parameters
 
-<ParamField body="offerId" type="integer" required>
+<ParamField body="id" type="integer" required>
   The offer ID to decline
 </ParamField>
 
@@ -203,7 +285,7 @@ Declines a received trade offer.
 
 ```json
 {
-  "offerId": 12345
+  "id": 12345
 }
 ```
 
@@ -219,6 +301,16 @@ Declines a received trade offer.
 }
 ```
 
+```json Error
+{
+  "err": true,
+  "success": false,
+  "content": {
+    "message": "Failed to decline offer or offer not found"
+  }
+}
+```
+ 
 ---
 
 ## Remove/Cancel offer
@@ -229,11 +321,11 @@ POST /offers/remove
 
 **Permission:** Connected + API
 
-Cancels a sent offer (only available for offers you created).
+Cancels a sent offer (buyer action). Only the offer creator can remove it.
 
 ### Body Parameters
 
-<ParamField body="offerId" type="integer" required>
+<ParamField body="id" type="integer" required>
   The offer ID to cancel
 </ParamField>
 
@@ -241,7 +333,7 @@ Cancels a sent offer (only available for offers you created).
 
 ```json
 {
-  "offerId": 12345
+  "id": 12345
 }
 ```
 
@@ -257,6 +349,12 @@ Cancels a sent offer (only available for offers you created).
 }
 ```
 
-<Info>
-  Cancelling an offer immediately releases the reserved balance back to the buyer's account.
-</Info>
+```json Error
+{
+  "err": true,
+  "success": false,
+  "content": {
+    "message": "Failed to remove offer or offer not found"
+  }
+}
+```

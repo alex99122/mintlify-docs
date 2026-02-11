@@ -22,7 +22,7 @@ Creates a buy order for a specific item at a specified price.
 <ParamField body="price" type="integer" required>
   Buy order price in cents
 </ParamField>
-
+ 
 <ParamField body="quantity" type="integer" required>
   Number of items to buy (default: 1)
 </ParamField>
@@ -211,11 +211,15 @@ Returns all active buy orders for the authenticated user across all items.
 ### Query Parameters
 
 <ParamField query="page" type="integer" default="0">
-  Page number for pagination
+  Page number for pagination (0-indexed)
 </ParamField>
 
-<ParamField query="perpage" type="integer" default="20">
-  Number of results per page (max 50)
+<ParamField query="count" type="integer" default="10">
+  Number of results per page (max 50, must be > 0)
+</ParamField>
+
+<ParamField query="search" type="string">
+  Search term to filter by item effect or name (minimum 3 characters)
 </ParamField>
 
 ### Response
@@ -232,21 +236,65 @@ Returns all active buy orders for the authenticated user across all items.
         "itemid": 12345,
         "price": 15000,
         "amount": 3,
-        "timestamp": "1706745600",
-        "name": "Team Captain",
+        "name": "Burning Flames Team Captain",
         "effect": "Burning Flames",
         "url": "unusual_team_captain",
         "game": 440,
         "quality": "Unusual",
         "image": "https://...",
         "type": "Hat",
-        "craftable": 1
+        "craftable": 1,
+        "SKU": "",
+        "type_steam": null,
+        "class": null,
+        "imagePertinence": 1,
+        "rarity": "",
+        "featured": 0,
+        "deal": null,
+        "color": "",
+        "slot": "",
+        "hero": null,
+        "weapon": null,
+        "exterior": null,
+        "description": null,
+        "tf2shop": null
       }
     ],
-    "count": 15
+    "count": {
+      "nb": 15
+    }
   }
 }
 ```
+
+### Response Fields
+
+Returns joined data from `buyorder` and `items` tables:
+
+**Buy Order Fields:**
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | number | Buy order ID |
+| `steamid` | string | User's Steam ID |
+| `itemid` | number | Item ID |
+| `price` | number | Buy order price in cents |
+| `amount` | number | Quantity remaining |
+| `name` | string | Buy order custom name (or item name) |
+
+**Item Fields (from items table):**
+All fields from the `items` table are joined, including `effect`, `name`, `url`, `game`, `quality`, `image`, `type`, `craftable`, etc.
+
+**Count Object:**
+| Field | Type | Description |
+|-------|------|-------------|
+| `count.nb` | number | Total number of buy orders |
+
+<Info>
+- Results are ordered by `buyorder.id DESC`
+- Only returns buy orders where `amount != 0`
+- Search functionality requires at least 3 characters
+- The `count` object contains the total number of buy orders for pagination
+</Info>
 
 <Info>
   Buy orders are automatically filled when matching items are listed at or below your buy order price. You'll receive a notification when a buy order is filled.

@@ -210,7 +210,7 @@ Returns the number of active listings for an item. If `userid` is provided, retu
   }
 }
 ```
-
+ 
 ### Response Fields
 
 | Field | Type | Description |
@@ -411,6 +411,55 @@ GET /item/cs/details/fromid/{backpackid}
 </ParamField>
 
 Same as above but specifically for CS2 items with wear, sticker, and pattern information.
- 
+
+### Response Fields for Backpack Details
+
+Both endpoints return combined data from `backpack`, `items`, and `item_infos` tables:
+
+```json
+{
+  "err": false,
+  "success": true,
+  "content": {
+    "informations": {
+      // Backpack fields
+      "id": "integer",
+      "assetId": "string",
+      "user": "string (Steam ID)",
+      "item_id": "integer",
+      "price": "integer (cents) or null",
+      "state": "integer (0=inventory, 1=on sale, 2=withdrawal)",
+      "bot": "string (bot Steam ID)",
+      "game": "integer (440/730/570/252490)",
+      "wear": "float or null (CS2 items)",
+      "sheen": "string (TF2 killstreak)",
+      "killstreaker": "string (TF2 killstreak)",
+      "spell": "string (TF2 spells)",
+      "parts": "string or null (TF2 strange parts)",
+      "paint": "string or null (TF2 paint)",
+      "lastupdate": "integer (Unix timestamp)",
+      
+      // Items table fields
+      "name": "string",
+      "effect": "string",
+      "quality": "string",
+      "type": "string",
+      "craftable": "integer or empty string",
+      "image": "string",
+      "rarity": "string",
+      "url": "string",
+      "color": "string (hex color)",
+      
+      // item_infos fields (if available)
+      "values": "string (JSON) or null",
+      "getImage": "integer or null"
+    }
+  }
+}
+```
+
+<Info>
+**Important:** The `craftable` field is set to empty string (`""`) for all non-TF2 games. Only TF2 items (game 440) retain the original `craftable` value (0 or 1). Additionally, trailing spaces and trailing semicolons are removed from all string fields.
+</Info>
 
  
