@@ -1,0 +1,422 @@
+---
+title: "Cart"
+description: "Manage your shopping cart: get cart, add items (single or bulk), remove items, and update cart integrity with automatic replacement of invalid items"
+---
+
+All endpoints in this section require **Connected + API** (valid JWT from API key login).
+
+The cart stores items you intend to purchase. Each cart row can contain one or more asset IDs for the same item at the same price (grouped by price). Cart integrity can be verified and invalid items (unavailable, price changed) can be automatically replaced by equivalent plain items at the same price when possible.
+
+---
+
+## Get cart
+
+```
+GET /cart/get
+```
+
+**Permission:** Connected + API
+
+Returns the authenticated user's cart with full item details (name, image, price, effect, quality, etc.) for each row.
+
+### Response
+
+```json
+{
+  "err": false,
+  "success": true,
+  "content": {
+    "cart": [
+      {
+        "cartId": 42,
+        "assetId": "987654321,987654322",
+        "count": 2,
+        "item_id": 5678,
+        "price": 15000,
+        "name": "Unusual Burning Flames Team Captain",
+        "image": "https://...",
+        "effect": "Burning Flames",
+        "rarity": "Unusual",
+        "color": "#8650AC",
+        "url": "unusual_team_captain",
+        "quality": "Unusual",
+        "type_steam": "Hat",
+        "class": "hat",
+        "craftable": 1,
+        "slot": "Misc",
+        "game": 440,
+        "sheen": "",
+        "killstreaker": "",
+        "spell": "",
+        "parts": "",
+        "paint": "",
+        "level": null,
+        "festivized": 0,
+        "inspect": ""
+      }
+    ]
+  }
+}
+```
+
+### Cart item fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `cartId` | integer | Cart row ID (use for remove) |
+| `assetId` | string | Comma-separated asset IDs in this row |
+| `count` | integer | Number of items in this row |
+| `item_id` | integer | Item type ID |
+| `price` | integer | Price in cents (stored at add time) |
+| `name` | string | Item name |
+| `image` | string | Item image URL |
+| `effect` | string | Unusual/effect name |
+| `rarity` | string | Quality/rarity |
+| `quality` | string | Quality label |
+| `game` | integer | Game ID (e.g. 440 = TF2, 730 = CS) |
+
+Additional fields from the items/backpack tables (e.g. `url`, `type_steam`, `class`, `craftable`, `slot`, `sheen`, `killstreaker`, `spell`, `parts`, `paint`, `level`, `festivized`, `inspect`, `values`) may be present.
+
+---
+
+## Add item to cart
+
+```
+POST /cart/add
+```
+
+**Permission:** Connected + API
+
+Adds a single item to the cart by its asset ID. The item must be for sale (state = 1) and not owned by the current user. The price is stored at add time.
+
+### Body parameters
+
+<ParamField body="assetId" type="string" required>
+  Steam asset ID of the item to add (from a listing)
+</ParamField>
+
+### Request example
+
+```json
+{
+  "assetId": "987654321"
+}
+```
+
+### Response
+
+```json Success
+{
+  "err": false,
+  "success": true,
+  "content": {
+    "cart": [
+      {
+        "cartId": 43,
+        "assetId": "987654321",
+        "count": 1,
+        "item_id": 5678,
+        "price": 15000,
+        "name": "Unusual Burning Flames Team Captain"
+      }
+    ]
+  }
+}
+```
+
+### Error responses
+
+| Status | Message | Description |
+|--------|---------|-------------|
+| `error` | Missing required parameter: assetId | assetId was not sent |
+| `error` | Item not available for purchase | Item not found, not for sale (state ≠ 1), or owned by you |
+| `error` | Item already in cart | This assetId is already in your cart |
+
+---
+
+## Bulk add to cart
+
+```
+POST /cart/bulk
+```
+
+**Permission:** Connected + API
+
+Adds multiple items of the same type to the cart in one call. The API selects the requested number of cheapest available listings for the given item (excluding items already in your cart). Items are grouped by price: one cart row per distinct price with comma-separated asset IDs.
+
+### Body parameters
+
+<ParamField body="itemId" type="integer" required>
+  Item type ID (from the items table)
+</ParamField>
+
+<ParamField body="count" type="integer" required>
+  Number of items to add (must be positive)
+</ParamField>
+
+<ParamField body="sellerUserId" type="string">
+  Optional. If provided, only consider listings from this seller (Steam ID)
+</ParamField>
+
+### Request example
+
+```json
+{
+  "itemId": 5678,
+  "count": 5
+}
+```
+
+### Response
+
+```json Success
+{
+  "err": false,
+  "success": true,
+  "content": {
+    "cart": [
+      {
+        "cartId": 44,
+        "assetId": "111,222,333",
+        "count": 3,
+        "item_id": 5678,
+        "price": 14000
+      },
+      {
+        "cartId": 45,
+        "assetId": "444,555",
+        "count": 2,
+        "item_id": 5678,
+        "price": 15000
+      }
+    ]
+  }
+}
+```
+
+### Error responses
+
+| Status | Message | Description |
+|--------|---------|-------------|
+| `error` | Missing required parameters: itemId, count | One or both parameters missing |
+| `error` | Invalid itemId parameter | itemId empty or not numeric |
+| `error` | Invalid count parameter. Must be a positive number | count empty, not numeric, or ≤ 0 |
+| `error` | No items available | No listings found for this item (or none matching filters) |
+
+<Info>
+Items are ordered by price ascending, then by last update. Already-in-cart asset IDs are excluded from the selection.
+</Info>
+
+---
+
+## Remove from cart
+
+```
+POST /cart/remove
+```
+
+**Permission:** Connected + API
+
+Removes one cart row (and all its asset IDs) from the cart.
+
+### Body parameters
+
+<ParamField body="cartId" type="integer" required>
+  Cart row ID (from get cart response)
+</ParamField>
+
+### Request example
+
+```json
+{
+  "cartId": 42
+}
+```
+
+### Response
+
+```json Success
+{
+  "err": false,
+  "success": true,
+  "content": {
+    "cart": []
+  }
+}
+```
+
+### Error responses
+
+| Status | Message | Description |
+|--------|---------|-------------|
+| `error` | Missing required parameter: cartId | cartId was not sent |
+| `error` | Invalid cartId parameter | cartId ≤ 0 |
+| `error` | Cart item not found | No cart row with this ID for the current user |
+
+---
+
+## Update cart (integrity + replace)
+
+```
+POST /cart/update
+```
+
+**Permission:** Connected + API
+
+Runs cart integrity checks and optionally fixes the cart:
+
+1. **Verify integrity**: For each item in the cart, checks that it still exists in the backpack, is still for sale (state = 1), and has the same price. Items that are not found, unavailable, have a different price, or are your own are marked invalid.
+2. **Replace plain items**: For each invalid item that is "plain" (no spell, sheen, wear, killstreaker, parts), the API tries to find another listing of the same item at the same price that is plain and available. If found, the cart row is updated to use the new asset ID. If not found, the invalid asset ID is removed from the cart row. Non-plain invalid items are only removed (no replacement attempt).
+3. **Cleanup**: Cart rows that end up with no asset IDs are deleted.
+
+Use this before checkout to ensure all cart items are still valid and to auto-replace invalid plain items when possible.
+
+### Response
+
+```json Success
+{
+  "err": false,
+  "success": true,
+  "content": {
+    "integrity": {
+      "valid": false,
+      "invalidItems": [
+        {
+          "cartId": 42,
+          "assetId": "987654321",
+          "reason": "price_changed",
+          "currentPrice": 16000,
+          "expectedPrice": 15000
+        },
+        {
+          "cartId": 43,
+          "assetId": "987654322",
+          "reason": "unavailable"
+        }
+      ]
+    },
+    "replaced": [
+      {
+        "cartId": 42,
+        "oldAssetId": "987654321",
+        "newAssetId": "987654999",
+        "reason": "price_changed"
+      }
+    ],
+    "removed": [
+      {
+        "cartId": 43,
+        "assetId": "987654322",
+        "reason": "unavailable"
+      }
+    ],
+    "cart": [
+      {
+        "cartId": 42,
+        "assetId": "987654999",
+        "count": 1,
+        "item_id": 5678,
+        "price": 15000
+      }
+    ]
+  }
+}
+```
+
+### Response fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `integrity.valid` | boolean | `true` if no invalid items were found |
+| `integrity.invalidItems` | array | List of invalid items with `cartId`, `assetId`, `reason`; `price_changed` entries include `currentPrice` and `expectedPrice` |
+| `replaced` | array | Items that were replaced: `cartId`, `oldAssetId`, `newAssetId`, `reason` |
+| `removed` | array | Invalid items that were removed without replacement: `cartId`, `assetId`, `reason` |
+| `cart` | array | Full cart after updates (same structure as GET /cart/get) |
+
+### Invalid item reasons
+
+| Reason | Description |
+|--------|-------------|
+| `not_found` | Item no longer exists in backpack |
+| `unavailable` | Item not for sale (state ≠ 1) |
+| `price_changed` | Item price in backpack differs from cart |
+| `own_item` | Item belongs to the current user |
+
+<Info>
+Replacement is only attempted for "plain" items (no spell, sheen, wear, killstreaker, parts). Non-plain invalid items are removed from the cart without replacement.
+</Info>
+
+### Error responses
+
+| Status | Message | Description |
+|--------|---------|-------------|
+| `error` | Cannot update cart | An exception occurred during update |
+
+---
+
+## Code examples
+
+### Get cart and update before checkout
+
+```javascript
+// 1. Get current cart
+const getRes = await fetch('https://api.example.com/cart/get', {
+  method: 'GET',
+  headers: { 'Authorization': 'Bearer YOUR_TOKEN' }
+});
+const { content: { cart } } = await getRes.json();
+
+// 2. Run integrity check and auto-replace invalid plain items
+const updateRes = await fetch('https://api.example.com/cart/update', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_TOKEN',
+    'Content-Type': 'application/json'
+  },
+  body: '{}'
+});
+const update = await updateRes.json();
+if (!update.content.integrity.valid) {
+  console.log('Invalid items:', update.content.integrity.invalidItems);
+  console.log('Replaced:', update.content.replaced);
+  console.log('Removed:', update.content.removed);
+}
+// Use update.content.cart for checkout
+```
+
+### Add single item and bulk add
+
+```javascript
+// Add one item by assetId
+await fetch('https://api.example.com/cart/add', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_TOKEN',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({ assetId: '987654321' })
+});
+
+// Add 10 of the same item (cheapest available)
+await fetch('https://api.example.com/cart/bulk', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_TOKEN',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({ itemId: 5678, count: 10 })
+});
+```
+
+### Remove a cart row
+
+```javascript
+await fetch('https://api.example.com/cart/remove', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_TOKEN',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({ cartId: 42 })
+});
+```

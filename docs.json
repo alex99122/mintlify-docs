@@ -49,6 +49,12 @@
             ]
           },
           {
+            "group": "🛒 Buyer - Cart",
+            "pages": [
+              "api-reference/cart"
+            ]
+          },
+          {
             "group": "💰 Seller - Listing",
             "pages": [
               "api-reference/deposit"

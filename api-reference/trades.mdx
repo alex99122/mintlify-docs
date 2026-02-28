@@ -65,25 +65,11 @@ GET /trades/all
 
 **Permission:** Connected + API
 
-Returns all trades for the authenticated user, including completed and failed trades.
-
-### Query Parameters
-
-<ParamField query="page" type="integer" default="0">
-  Page number for pagination
-</ParamField>
-
-<ParamField query="perpage" type="integer" default="20">
-  Number of results per page (max 50)
-</ParamField>
-
-<ParamField query="status" type="string">
-  Filter by status: `pending`, `completed`, `failed`
-</ParamField>
+Returns all trades for the authenticated user (or the given user if admin), including completed and failed. Hidden trades (status -11) are excluded. Results are ordered by timestamp descending and limited to the last 500 trades. No query parameters are supported.
 
 ### Response
 
-Returns paginated array of all trades.
+Returns array of all trades (up to 500).
 
 ```json
 {
@@ -114,12 +100,18 @@ Returns paginated array of all trades.
 ## Resend trade offer
 
 ```
-GET /trade/resend
+GET /trade/resend?resend={tradeId}
 ```
 
 **Permission:** Connected + API
 
-Resends a failed or cancelled trade offer for the authenticated user. The system automatically identifies the most recent failed trade and attempts to resend it.
+Marks a failed or cancelled trade for resend by setting its status and generating a new code. The trade must be one of: status -1, 4, 5, 6, 7, or 10, with non-empty `items_send` (withdrawal).
+
+### Query Parameters
+
+<ParamField query="resend" type="integer" required>
+  Internal trade ID to resend
+</ParamField>
 
 ### Response
 
@@ -139,10 +131,9 @@ Resends a failed or cancelled trade offer for the authenticated user. The system
 
 | Status | Message | Description |
 |--------|---------|-------------|
-| `error` | No failed trades to resend | No eligible trades found |
-| `error` | Bot offline | The bot is currently offline |
-| `error` | Trade URL invalid | User's Steam trade URL is invalid or expired |
+| `error` | Missing resend parameter | Query parameter `resend` not provided |
+| `error` | Failed to resend trade. Trade not found or conditions not met. | Trade doesn't exist, isn't owned by user, or isn't in a resendable state |
 
 <Info>
-  This endpoint is useful when a trade offer expires or fails due to temporary issues. It will create a new trade offer with the same items.
+  Use the trade `id` from `GET /trades/active` or `GET /trades/all`. After a successful resend, a new offer is created with the same items and the new `code`.
 </Info>
