@@ -71,12 +71,6 @@
             "pages": [
               "api-reference/user"
             ]
-          },
-          {
-            "group": "🔗 Partner Integration",
-            "pages": [
-              "api-reference/webhooks-vendor"
-            ]
           }
         ]
       }
