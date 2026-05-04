@@ -1,7 +1,9 @@
 ---
 title: "Buy Orders"
-description: "Create, update, and manage buy orders for items"
+description: "Create, update, and manage buy orders (all require API filter)"
 ---
+
+Base URL: `https://api.mannco.store`. All endpoints require **Connected + API** (JWT from `POST /user/login`).
 
 ## Create buy order
 
@@ -11,29 +13,29 @@ POST /item/buyorder
 
 **Permission:** Connected + API
 
-Creates a buy order for a specific item at a specified price.
+Creates a buy order for a specific item at a specified price. Only one buy order per item per user; use update to change an existing one.
 
 ### Body Parameters
 
-<ParamField body="itemId" type="integer" required>
+<ParamField body="itemid" type="integer" required>
   Item ID for which to create a buy order
 </ParamField>
 
-<ParamField body="price" type="integer" required>
-  Buy order price in cents
+<ParamField body="value" type="integer" required>
+  Buy order price in cents (must be positive)
 </ParamField>
- 
-<ParamField body="quantity" type="integer" required>
-  Number of items to buy (default: 1)
+
+<ParamField body="amount" type="integer" required>
+  Number of items to buy (max 499999 per create; max 4999 per update)
 </ParamField>
 
 ### Request Example
 
 ```json
 {
-  "itemId": 12345,
-  "price": 15000,
-  "quantity": 3
+  "itemid": 12345,
+  "value": 15000,
+  "amount": 3
 }
 ```
 
@@ -53,13 +55,13 @@ Creates a buy order for a specific item at a specified price.
 
 | Status | Message | Description |
 |--------|---------|-------------|
-| `error` | Insufficient balance | User doesn't have enough balance to create the buy order |
-| `error` | Price too low | Buy order price is below minimum threshold |
-| `error` | Item not found | Invalid item ID |
-| `error` | Buy order limit reached | User has reached the maximum number of buy orders |
+| `error` | Not enough balance | User doesn't have enough balance (value × amount reserved) |
+| `error` | You already have buy order on this item please remove them in your profile page! | One buy order per item per user |
+| `error` | Max 5000 items | Amount exceeds limit (create: under 500000, update: under 5000) |
+| `error` | Value/Amount/Itemid must be a (positive) number | Invalid or missing body parameters |
 
 <Info>
-  The total price (price × quantity) will be reserved from your balance when creating a buy order.
+  The total (value × amount) is reserved from your balance when creating a buy order.
 </Info>
 
 ---
@@ -72,29 +74,29 @@ POST /item/buyorder/update
 
 **Permission:** Connected + API
 
-Updates an existing buy order's price or quantity.
+Replaces your existing buy order for the same item with a new price and/or quantity. You must already have a buy order on the item.
 
 ### Body Parameters
 
-<ParamField body="buyOrderId" type="integer" required>
-  Buy order ID to update
+<ParamField body="itemid" type="integer" required>
+  Item ID of the buy order to update
 </ParamField>
 
-<ParamField body="price" type="integer">
-  New price in cents (optional)
+<ParamField body="value" type="integer" required>
+  New price in cents (must be positive)
 </ParamField>
 
-<ParamField body="quantity" type="integer">
-  New quantity (optional)
+<ParamField body="amount" type="integer" required>
+  New quantity (max 4999)
 </ParamField>
 
 ### Request Example
 
 ```json
 {
-  "buyOrderId": 98765,
-  "price": 16000,
-  "quantity": 5
+  "itemid": 12345,
+  "value": 16000,
+  "amount": 5
 }
 ```
 
@@ -108,8 +110,17 @@ Updates an existing buy order's price or quantity.
 }
 ```
 
+### Error Responses
+
+| Status | Message | Description |
+|--------|---------|-------------|
+| `error` | Not enough balance | Insufficient balance for value × amount |
+| `error` | You dont have buy order on this item ! | No existing buy order for this item |
+| `error` | No buy order found | Remove failed internally |
+| `error` | Max 5000 items | Amount exceeds 4999 |
+
 <Warning>
-  Updating a buy order may require additional balance if increasing price or quantity. The difference will be reserved from your available balance.
+  Updating reserves the new total (value × amount) from your balance; the previous reservation is released.
 </Warning>
 
 ---
@@ -122,19 +133,19 @@ POST /item/buyorder/remove
 
 **Permission:** Connected + API
 
-Cancels and removes a buy order, releasing the reserved balance.
+Cancels and removes your buy order for an item, releasing the reserved balance.
 
 ### Body Parameters
 
-<ParamField body="buyOrderId" type="integer" required>
-  Buy order ID to remove
+<ParamField body="itemid" type="integer" required>
+  Item ID of the buy order to remove
 </ParamField>
 
 ### Request Example
 
 ```json
 {
-  "buyOrderId": 98765
+  "itemid": 12345
 }
 ```
 
@@ -149,6 +160,12 @@ Cancels and removes a buy order, releasing the reserved balance.
   }
 }
 ```
+
+### Error Responses
+
+| Status | Message | Description |
+|--------|---------|-------------|
+| `error` | No buy order found | No buy order for this item for the current user |
 
 ---
 
@@ -206,20 +223,24 @@ GET /user/getBuyorder
 
 **Permission:** Connected + API
 
-Returns all active buy orders for the authenticated user across all items.
+Returns active buy orders for the authenticated user across all items.
 
 ### Query Parameters
 
 <ParamField query="page" type="integer" default="0">
-  Page number for pagination (0-indexed)
+  Page number for pagination (offset = page × count)
 </ParamField>
 
 <ParamField query="count" type="integer" default="10">
-  Number of results per page (max 50, must be > 0)
+  Number of results per page (max 1000, must be > 0)
 </ParamField>
 
 <ParamField query="search" type="string">
-  Search term to filter by item effect or name (minimum 3 characters)
+  Optional search term to filter by item effect or name
+</ParamField>
+
+<ParamField query="undercut" type="boolean">
+  If `true` or `1`, filter to buy orders that are below the current lowest sale price
 </ParamField>
 
 ### Response

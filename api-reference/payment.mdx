@@ -1,133 +1,122 @@
 ---
 title: "Payment"
-description: "Create payment deposits to add balance to your account"
+description: "Create a checkout session to add balance or pay for cart items (POST /payment/{provider})"
 ---
 
-## Create payment
-
 ```
-POST /paiement/{provider}
+POST https://api.mannco.store/payment/{provider}
 ```
 
 **Permission:** Connected + API
 
 <ParamField path="provider" type="string" required>
-  Payment provider identifier (e.g., `payviox`, `mannco`)
+  One of: **`payviox`** (card / external checkout) or **`mannco`** (pay with your **on-site balance**). Other names return `Invalid provider`.
 </ParamField>
 
-Initiates a payment deposit to add balance to the user's account through a payment provider.
+Initiates a payment. The server validates the body with the provider, records the transaction, and either returns a **redirect URL** for the user to complete payment, or a success message when the flow completes immediately.
 
-### Body Parameters
+## Required for all types
 
-<ParamField body="amount" type="integer" required>
-  Amount to deposit in cents (minimum varies by provider, typically 500 = $5)
+<ParamField body="type" type="string" required>
+  Either `balance` (add credit) or `items` (pay for listed items).
 </ParamField>
 
-<ParamField body="currency" type="string" default="USD">
-  Currency code (USD, EUR, etc.)
+<ParamField body="tos_timestamp" type="string | number" required>
+  Client timestamp of Terms of Service acceptance; validated server-side (must not be in the future).
 </ParamField>
 
-<ParamField body="returnUrl" type="string">
-  URL to redirect to after payment completion
+Optional audit fields may be accepted: `checkout_create_timestamp` (client time of checkout creation).
+
+## Balance deposit
+
+<ParamField body="value" type="integer" required>
+  Amount in **cents** to add (capped server-side, e.g. max 2 500 000 in implementation).
 </ParamField>
 
-<ParamField body="method" type="string">
-  Specific payment method (credit_card, paypal, crypto, etc.) - varies by provider
+<ParamField body="payment_method" type="string">
+  Optional provider-specific payment method id.
 </ParamField>
 
-### Request Example
+### Example
 
 ```json
 {
-  "amount": 10000,
-  "currency": "USD",
-  "returnUrl": "https://yourapp.com/payment/success",
-  "method": "credit_card"
+  "type": "balance",
+  "value": 10000,
+  "tos_timestamp": 1706745600,
+  "payment_method": null
 }
 ```
 
-### Response
+## Pay for items (cart checkout)
 
-```json Success
+Use with **`payviox`** (redirect to pay) or **`mannco`** (deduct **account balance** immediately; `mannco` only supports `type: items`, not balance top-up).
+
+<ParamField body="items" type="string" required>
+  Comma-separated Steam **assetId** values for items you are purchasing (must be listed for sale, `state = 1`, not yours).
+</ParamField>
+
+<ParamField body="payment_method" type="string">
+  Optional provider-specific method id.
+</ParamField>
+
+### Example
+
+```json
+{
+  "type": "items",
+  "items": "987654321,987654322",
+  "tos_timestamp": 1706745600
+}
+```
+
+## Responses
+
+On success, `Response("success", …)` is used:
+
+- If the provider returns a **redirect URL**, you get:
+
+```json
 {
   "err": false,
   "success": true,
   "content": {
-    "paymentId": "PAY_123456789",
-    "provider": "payviox",
-    "amount": 10000,
-    "currency": "USD",
-    "status": "pending",
-    "paymentUrl": "https://payment-provider.com/checkout/xyz123",
-    "expiresAt": "1706835600"
+    "url": "https://payment-provider.example/checkout/..."
   }
 }
 ```
 
-### Response Fields
+Send the user to `content.url` in a browser to complete payment.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `paymentId` | string | Unique payment transaction ID |
-| `provider` | string | Payment provider name |
-| `amount` | integer | Deposit amount in cents |
-| `currency` | string | Currency code |
-| `status` | string | Payment status (`pending`, `completed`, `failed`) |
-| `paymentUrl` | string | URL to complete payment (redirect user here) |
-| `expiresAt` | string | Unix timestamp when payment link expires |
+- If processing finishes without a redirect (rare / provider-dependent):
 
-### Error Responses
+```json
+{
+  "err": false,
+  "success": true,
+  "content": {
+    "message": "Payment processed successfully"
+  }
+}
+```
 
-| Status | Message | Description |
-|--------|---------|-------------|
-| `error` | Invalid amount | Amount is below minimum or exceeds maximum |
-| `error` | Invalid provider | Unknown or unsupported payment provider |
-| `error` | Provider unavailable | Payment provider is temporarily unavailable |
-| `error` | Invalid currency | Currency not supported by provider |
-| `error` | Rate limit exceeded | Too many payment requests in short period |
+## Error responses (typical)
 
-### Supported Providers
+| Message | When |
+|---------|------|
+| Provider is required | Missing path `provider` |
+| Invalid user | User missing or banned |
+| Invalid provider | Unknown provider name |
+| Invalid request parameters | `validateRequest` failed (wrong `type`, missing `value` or `items`) |
+| Tos acceptance is required | Missing `tos_timestamp` |
+| Invalid TOS acceptance | Bad timestamp format |
+| Tos acceptance cannot be in the future | Clock skew |
+| Failed to save transaction | DB insert failure |
+| Failed to process payment | Provider API error |
+| No items found | For `type: items`, no matching backpack rows |
 
-| Provider | Methods | Min/Max | Processing Time |
-|----------|---------|---------|-----------------|
-| `payviox` | Credit Card, PayPal | $5 - $500 | Instant |
-| `mannco` | Various | $10 - $1000 | Instant |
+Some providers may enforce extra checks (see provider class `requires2FA()` — API JWT still passes 2FA gate per server rules).
 
 <Info>
-  After creating a payment, redirect the user to the `paymentUrl` to complete the transaction. The system will automatically credit the balance once payment is confirmed via webhook.
+  Webhooks from the payment provider credit balance or finalize orders on Mannco.store; your client should rely on the redirect URL and/or account balance / history endpoints after payment.
 </Info>
-
----
-
-## Payment Flow
-
-1. **Create Payment:** Client calls `POST /paiement/{provider}` with amount and details
-2. **Redirect:** User is redirected to `paymentUrl` to complete payment
-3. **Process:** User completes payment on provider's site
-4. **Webhook:** Provider sends webhook to Mannco.store confirming payment
-5. **Credit Balance:** Balance is automatically added to user's account
-6. **Notification:** User receives confirmation email and notification
-
-### Payment Status
-
-| Status | Description |
-|--------|-------------|
-| `pending` | Payment created, awaiting completion |
-| `processing` | Payment being verified by provider |
-| `completed` | Payment successful, balance credited |
-| `failed` | Payment failed or was cancelled |
-| `expired` | Payment link expired without completion |
-
-<Warning>
-  Payment links typically expire after 1 hour. Users must complete the payment before expiration.
-</Warning>
-
-<Note>
-  All payments are processed securely through our payment partners. Mannco.store does not store credit card information.
-</Note>
-
----
-
-## Testing Payments
-
-For testing in sandbox/development environments, providers may offer test credentials and card numbers. Consult the specific provider's documentation for test mode details.

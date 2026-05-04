@@ -1,6 +1,12 @@
 ---
 title: "Deposit"
-description: "Deposit items from Steam inventory to Mannco.store"
+description: "Deposit Steam items (GET /deposit/{game}, POST /deposit/trade, instant sell)"
+---
+
+Base URL: `https://api.mannco.store`.
+
+Endpoints use **Connected + API** unless noted. Send `Authorization: Bearer <jwt>`.
+
 ---
 
 ## Get deposit information
@@ -12,12 +18,12 @@ GET /deposit/{game}
 **Permission:** Connected + API
 
 <ParamField path="game" type="integer" required>
-  Game ID (`440` for TF2, `730` for CS2, `570` for Dota 2, `252490` for Rust)
+  Game id: `440` (TF2), `730` (CS2), `570` (Dota 2), `252490` (Rust).
 </ParamField>
 
-Returns pricing information and available items from the user's Steam inventory for the specified game.
+Returns your Steam inventory for that game with **`depositkey`** maps per asset id, pricing hints, and optional `disabled` / high-stock fields. The response uses `content.informations` as an array of rows.
 
-### Response
+### Response (shape)
 
 ```json
 {
@@ -29,14 +35,6 @@ Returns pricing information and available items from the user's Steam inventory 
         "assetid": "123456789;987654321",
         "count": 2,
         "market_hash_name": "Unusual Burning Flames Team Captain",
-        "unusual": "Burning Flames",
-        "craft": "",
-        "spell": "",
-        "sheen": "",
-        "killstreaker": "",
-        "image": "https://...",
-        "class": "Scout;Soldier",
-        "quality": "Unusual",
         "item_id": 5678,
         "url": "unusual-burning-flames-team-captain",
         "depositkey": {
@@ -51,87 +49,106 @@ Returns pricing information and available items from the user's Steam inventory 
 }
 ```
 
-### Item Fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `assetid` | string | Steam asset ID (semicolon-separated for grouped items) |
-| `market_hash_name` | string | Steam Market name |
-| `image` | string | Item image URL |
-| `item_id` | integer/string | Item ID from database or empty string |
-| `url` | string | Item URL slug or empty |
-| `depositkey` | object | Object mapping assetid to deposit key hash: `{"assetid1": "hash1", "assetid2": "hash2"}` |
-| `count` | integer | Number of grouped items |
-| `disabled` | string | Reason if item is not accepted: `"blacklist"` or `"highstock"` |
-| `nb_high_stock` | integer | Current stock count for this item |
-| `high_stock_limit` | integer | Maximum stock threshold (if not disabled) |
-
-**TF2-specific fields (game 440):**
-| `unusual` | string | Unusual effect name |
-| `paintcolor` | string | Paint color |
-| `craft` | string | `"uncraftable "` if not craftable, empty otherwise |
-| `spell` | string | Spell names (semicolon-separated) |
-| `sheen` | string | Killstreak sheen effect (semicolon-separated) |
-| `killstreaker` | string | Killstreaker effect (semicolon-separated) |
-| `class` | string | Item class (e.g., "Scout", "Soldier") |
-| `quality` | string | Item quality (e.g., "Unusual", "Strange") |
-
-**CS:GO/CS2-specific fields (game 730):**
-| `type` | string | Item type (e.g., "Rifle", "Knife") |
-| `quality` | string | Item quality |
-| `rarity` | string | Item rarity (e.g., "Covert", "Classified") |
-| `wear` | float | Wear value (0.00-1.00) |
-| `pattern` | integer | Pattern seed/template |
-| `stickers` | array | Array of sticker objects: `[{"url": "string", "name": "string"}]` |
-| `keychains` | array | Array of keychain objects: `[{"url": "string", "name": "string"}]` |
-
-**DOTA2-specific fields (game 570):**
-| `type` | string | Item type |
-| `quality` | string | Item quality |
-| `rarity` | string | Item rarity |
-
-**RUST-specific fields (game 252490):**
-| `type` | string | Item type |
-| `category` | string | Item category |
+TF2 / CS2 / Dota / Rust may add game-specific fields (`unusual`, `wear`, `stickers`, etc.). See existing **Items** docs for field meanings.
 
 <Info>
-  The `depositkey` is an object mapping each assetid to its unique deposit hash (SHA256). Items with the `disabled` field set cannot be deposited. Items are grouped by game-specific attributes (TF2: item_id|sheen|spell|killstreaker; CS:GO: item_id|wear|pattern).
+  Each `depositkey[assetId]` is validated server-side with `hash('sha256', depositSecret + assetId + user)` when you submit **POST /deposit/trade**.
 </Info>
 
 ---
 
-## Get bot list
+## Create deposit trade
 
 ```
-GET /deposit/botList/{game}
+POST /deposit/trade
 ```
 
-**Permission:** API
+**Permission:** Connected + API
 
-<ParamField path="game" type="integer" required>
-  Game ID
+### Body parameters
+
+<ParamField body="prices" type="object" required>
+  Map **assetId string** to price in **cents** (integer). Can be sent as JSON object or JSON string parsed server-side.
 </ParamField>
 
-Returns a list of available trade bots for the specified game, including their status and capacity.
+<ParamField body="depositKeys" type="object" required>
+  Map **assetId** to the **depositkey** string from `GET /deposit/{game}` for that asset.
+</ParamField>
+
+<ParamField body="game" type="integer">
+  Default `440`. Must be one of `440`, `730`, `570`, `252490`.
+</ParamField>
+
+### Example
+
+```json
+{
+  "prices": { "123456789": 15000, "987654321": 8000 },
+  "depositKeys": { "123456789": "...", "987654321": "..." },
+  "game": 440
+}
+```
 
 ### Response
- 
+
 ```json
 {
   "err": false,
   "success": true,
-  "content": [
-    {
-      "steamId": "76561198000000000",
-      "name": "Mannco Bot #1",
-      "online": true,
-      "capacity": 850,
-      "currentItems": 645,
-      "tradeUrl": "https://steamcommunity.com/tradeoffer/new/?partner=..."
-    }
-  ]
+  "content": { "id": 42 }
 }
 ```
+
+Use `content.id` as **`tradeid`** for **GET /deposit/tradeStatus/{tradeid}**.
+
+### Errors (typical)
+
+| content message | Meaning |
+|-----------------|---------|
+| missing value parameter | `prices` missing |
+| missing depositKeys parameter | `depositKeys` missing |
+| invalid game parameter | Bad or missing `game` |
+| invalid JSON format in value parameter | `prices` not valid JSON when sent as string |
+| invalid JSON format in depositKeys parameter | Same for keys |
+| value must be a JSON object with assetId - price mapping | `prices` not an object |
+| invalid deposit key for assetId: X | Hash mismatch |
+| failed to save deposit price | Server could not persist |
+
+---
+
+## Instant sell (information)
+
+```
+GET /deposit/instantSell/{game}
+```
+
+**Permission:** Connected + API
+
+<ParamField path="game" type="integer" required>
+  Currently **440** (TF2) only in server implementation.
+</ParamField>
+
+Returns enriched inventory data for instant-sell pricing (`content.informations`), built from cached deposit lists and buy-order tiers.
+
+---
+
+## Create instant sell trade
+
+```
+POST /deposit/trade/instant
+```
+
+**Permission:** Connected + API (+ `2fa` filter — satisfied automatically with API JWT)
+
+Same general idea as **POST /deposit/trade**, plus:
+
+<ParamField body="cashout_method" type="string" required>
+  Instant sell payout method (server-defined values).
+</ParamField>
+
+**Supported games:** TF2 (`440`) only in code.
+
+Also requires `prices` and `depositKeys` as objects (or JSON strings). Errors mirror validation in `createTradeInstant.php` (`missing prices parameter`, `instant sell is not supported for this game`, etc.).
 
 ---
 
@@ -143,97 +160,48 @@ GET /deposit/tradeStatus/{tradeid}
 
 **Permission:** Connected + API
 
-<ParamField path="tradeid" type="string" required>
-  Steam trade offer ID
+<ParamField path="tradeid" type="integer" required>
+  The **`id`** returned by **POST /deposit/trade** (deposit row id).
 </ParamField>
 
-Checks the current status of a deposit trade offer.
+Returns deposit row plus nested **`trade`** when available.
 
-### Response
+### Response (shape)
 
 ```json
 {
   "err": false,
   "success": true,
   "content": {
-    "tradeId": "987654321",
-    "status": 3,
-    "statusText": "Completed",
-    "items": [
-      {
-        "assetId": "123456789",
-        "name": "Unusual Team Captain",
-        "price": 150000
-      }
-    ],
-    "totalPrice": 150000,
-    "timestamp": "1706745600",
-    "completedAt": "1706749200"
-  }
-}
-```
-
-### Trade Status Values
-
-| Status | Description |
-|--------|-------------|
-| `0` | Pending - waiting for acceptance |
-| `3` | Completed - items credited to account |
-| `-1` | Failed - trade was declined or expired |
-
----
-
-## Set price for upcoming trade
-
-```
-POST /deposit/setPriceForUpcomingTrade
-```
-
-**Permission:** Connected + API
-
-Pre-sets custom prices for items before creating a deposit trade. Useful for negotiating prices or handling items with dynamic pricing.
-
-### Body Parameters
-
-<ParamField body="items" type="array" required>
-  Array of items with assetId and custom price
-</ParamField>
-
-### Request Example
-
-```json
-{
-  "items": [
-    {
-      "assetId": "123456789",
-      "price": 145000
-    },
-    {
-      "assetId": "987654321",
-      "price": 85000
+    "trade": {
+      "id": 123456,
+      "items_received": "123456789,987654321",
+      "items_send": "",
+      "status": 3,
+      "user": "76561198000000000",
+      "bot": "76561198111111111",
+      "code": "...",
+      "lasterror": "",
+      "offerid": "5678901234",
+      "timestamp": "1706745600000",
+      "game": 440
     }
-  ]
-}
-```
-
-### Response
-
-```json Success
-{
-  "err": false,
-  "success": true,
-  "content": {
-    "pricesSet": 2,
-    "expiresAt": "1706749200",
-    "message": "Prices set for upcoming trade. Create trade within 10 minutes."
   }
 }
 ```
 
-<Warning>
-  Custom prices expire after 10 minutes. You must initiate the deposit trade within this timeframe.
-</Warning>
+### Errors
 
-<Info>
-  This endpoint is typically used in conjunction with a manual price negotiation process. Most users will use the standard pricing from `GET /deposit/{game}`.
-</Info>
+| Type | When |
+|------|------|
+| `error` | Missing or invalid `tradeid` |
+| `notFound` | No deposit for that id |
+| `forbidden` | Deposit belongs to another user |
+
+### Trade status (deposit flow)
+
+| Status | Meaning |
+|--------|---------|
+| `0` | Pending |
+| `3` | Completed |
+| `-1` | Failed |

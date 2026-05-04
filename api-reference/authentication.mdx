@@ -1,29 +1,45 @@
 ---
 title: "Authentication"
-description: "API Key authentication and JWT token management"
+description: "API key login (POST /user/login), JWT usage, Authorization header, and errors"
 ---
 
-## API Key Login
+## API login (`POST /user/login`)
+
+Use this to obtain a JWT for all documented routes that require **Connected + API**.
 
 <Card title="POST /user/login" icon="key">
-  Authenticates using an API key and returns a JWT token for subsequent API calls.
+  Exchanges an **API key** for a **JWT** used on subsequent calls.
 </Card>
 
 ```
-POST /user/login
+POST https://api.mannco.store/user/login
 ```
 
-**Authentication:** None
+**Authentication:** none (you send the key in the body).
 
-**Body Parameters**
+### Request body
+
+The router accepts **JSON** (`Content-Type: application/json`) or **`application/x-www-form-urlencoded`**. Required field:
 
 <ParamField body="apiKey" type="string" required>
-  The API key associated with your Mannco.store account. You can generate this from your account settings.
+  API key from your Mannco.store account settings.
 </ParamField>
 
-### Response
+#### JSON example
 
-```json Success Response
+```json
+{ "apiKey": "your-api-key" }
+```
+
+#### Form example
+
+```
+apiKey=your-api-key
+```
+
+### Success response
+
+```json
 {
   "err": false,
   "success": true,
@@ -33,78 +49,87 @@ POST /user/login
 }
 ```
 
-### JWT Token Structure
+Use **`content.jwt`** (there is no `data` wrapper).
 
-The JWT token contains the following claims:
+### JWT claims (decoded payload)
 
 | Claim | Type | Description |
 |-------|------|-------------|
-| `iss` | string | Issuer — always `"API"` |
-| `sub` | string | Steam ID of the user |
-| `exp` | integer | Expiration timestamp (31 days from creation) |
-| `iat` | integer | Issued at timestamp |
-| `jti` | string | Unique token identifier (UUID) |
-| `ip` | string | Client IP address |
+| `iss` | string | Always `"API"` |
+| `sub` | string | User Steam64 ID |
+| `exp` | number | Expiry (Unix), about 31 days after issue |
+| `iat` | number | Issued-at (Unix) |
+| `jti` | string | Token id |
+| `ip` | string | Client IP at login time |
+| `proxy` | boolean | Proxy context |
+| `API` | boolean | Always `true` for this flow |
 | `country` | string | ISO country code |
-| `steamid` | integer | Numeric Steam ID |
-| `API` | boolean | Always `true` for API authentication |
+| `steamid` | string | Steam ID (backend format) |
+| `roles` / `rolesHash` | | Role data |
 
-### Error Responses
+### Errors (loginAPI.php)
 
-| Status | Message | Description |
-|--------|---------|-------------|
-| `error` | Missing required parameter: apiKey | The `apiKey` field was not provided |
-| `forbidden` | Invalid API key | The provided API key does not exist or is invalid |
-| `forbidden` | Country blocked | Your country is blocked from accessing the API |
+| Response type | Typical HTTP | content |
+|---------------|--------------|---------|
+| `error` | 300 | Missing required parameter: apiKey |
+| `forbidden` | 403 | Invalid API key |
+| `forbidden` | 403 | Country blocked |
 
-### Usage Example
+### Examples
 
 ```bash cURL
-curl -X POST https://mannco.store/user/login \
+curl -X POST https://api.mannco.store/user/login \
   -H "Content-Type: application/json" \
-  -d '{"apiKey": "your-api-key-here"}'
+  -d '{"apiKey":"your-api-key"}'
 ```
 
 ```javascript JavaScript
-const response = await fetch('https://mannco.store/user/login', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({
-    apiKey: 'your-api-key-here'
-  })
+const res = await fetch("https://api.mannco.store/user/login", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ apiKey: "your-api-key" }),
 });
-
-const data = await response.json();
-const jwtToken = data.data.jwt;
+const data = await res.json();
+const jwt = data.content.jwt;
 ```
 
 ```python Python
 import requests
 
-response = requests.post('https://mannco.store/user/login', json={
-    'apiKey': 'your-api-key-here'
-})
-
-data = response.json()
-jwt_token = data['data']['jwt']
+r = requests.post(
+    "https://api.mannco.store/user/login",
+    json={"apiKey": "your-api-key"},
+)
+data = r.json()
+jwt = data["content"]["jwt"]
 ```
 
 <Note>
-  Store the JWT token securely. It expires after 31 days and must be included in all authenticated API requests.
+  Store the JWT securely. When it expires, call POST /user/login again with your API key.
 </Note>
 
 ---
 
-## Using the JWT Token
+## Using the JWT
 
-Once you have obtained a JWT token, include it in subsequent API requests. The exact method depends on how the API is configured, but typically one of:
+For endpoints that require **Connected + API**, send:
 
-1. **Cookie:** The token may be automatically set as a session cookie
-2. **Authorization Header:** `Authorization: Bearer {token}`
-3. **Custom Header:** Check specific endpoint documentation
+```
+Authorization: Bearer <jwt>
+```
 
-<Info>
-  Most endpoints in this API require the `api` permission level, which means they require a valid JWT token obtained through this authentication endpoint.
-</Info>
+The server may also accept a session cookie in browser contexts; for API clients, **Bearer** is the intended method.
+
+### IP binding
+
+The JWT is tied to the **IP address** at login. If your client IP changes (VPN, mobile network, proxy), requests may fail authentication. Use a stable egress IP or the same network as when you obtained the token.
+
+### Routes without a logged-in user
+
+Some routes only have the `api` filter (no `connected`). Public item endpoints may work without a Bearer token. **GET /user/store/{identifier}** does not require a user JWT. For **your** account data, always send the Bearer token from **POST /user/login**.
+
+---
+
+## 2FA vs API JWT
+
+Server routes marked with **2fa** accept a JWT from **POST /user/login** without sending a 2FA header: **requires2FA** succeeds when **isAPI** is true. If you use a **web session** instead of the API JWT, 2FA rules apply as on the website.

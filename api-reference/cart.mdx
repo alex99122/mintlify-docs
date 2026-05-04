@@ -3,7 +3,9 @@ title: "Cart"
 description: "Manage your shopping cart: get cart, add items (single or bulk), remove items, and update cart integrity with automatic replacement of invalid items"
 ---
 
-All endpoints in this section require **Connected + API** (valid JWT from API key login).
+All endpoints in this section require **Connected + API** (JWT from `POST /user/login`).
+
+Base URL: `https://api.mannco.store`.
 
 The cart stores items you intend to purchase. Each cart row can contain one or more asset IDs for the same item at the same price (grouped by price). Cart integrity can be verified and invalid items (unavailable, price changed) can be automatically replaced by equivalent plain items at the same price when possible.
 
@@ -360,14 +362,14 @@ Replacement is only attempted for "plain" items (no spell, sheen, wear, killstre
 
 ```javascript
 // 1. Get current cart
-const getRes = await fetch('https://api.example.com/cart/get', {
+const getRes = await fetch('https://api.mannco.store/cart/get', {
   method: 'GET',
   headers: { 'Authorization': 'Bearer YOUR_TOKEN' }
 });
 const { content: { cart } } = await getRes.json();
 
 // 2. Run integrity check and auto-replace invalid plain items
-const updateRes = await fetch('https://api.example.com/cart/update', {
+const updateRes = await fetch('https://api.mannco.store/cart/update', {
   method: 'POST',
   headers: {
     'Authorization': 'Bearer YOUR_TOKEN',
@@ -388,7 +390,7 @@ if (!update.content.integrity.valid) {
 
 ```javascript
 // Add one item by assetId
-await fetch('https://api.example.com/cart/add', {
+await fetch('https://api.mannco.store/cart/add', {
   method: 'POST',
   headers: {
     'Authorization': 'Bearer YOUR_TOKEN',
@@ -398,7 +400,7 @@ await fetch('https://api.example.com/cart/add', {
 });
 
 // Add 10 of the same item (cheapest available)
-await fetch('https://api.example.com/cart/bulk', {
+await fetch('https://api.mannco.store/cart/bulk', {
   method: 'POST',
   headers: {
     'Authorization': 'Bearer YOUR_TOKEN',
@@ -411,7 +413,7 @@ await fetch('https://api.example.com/cart/bulk', {
 ### Remove a cart row
 
 ```javascript
-await fetch('https://api.example.com/cart/remove', {
+await fetch('https://api.mannco.store/cart/remove', {
   method: 'POST',
   headers: {
     'Authorization': 'Bearer YOUR_TOKEN',

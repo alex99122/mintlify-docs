@@ -1,7 +1,11 @@
 ---
 title: "Items"
-description: "Browse item details, listings, pricing, sales graphs, and buy order lists"
+description: "Item details, listings, pricing, sales graphs, and buy order lists (all require API filter)"
 ---
+
+Base URL: `https://api.mannco.store`.
+
+Routes here use the **`api` filter**. Endpoints marked **Connected + API** need `Authorization: Bearer <jwt>` from `POST /user/login`. Endpoints marked **API only** do not require a user session (no Bearer).
 
 ## Get item details
 
@@ -9,7 +13,7 @@ description: "Browse item details, listings, pricing, sales graphs, and buy orde
 GET /item/details/{item}
 ```
 
-**Permission:** API
+**Permission:** API only (no session required)
 
 <ParamField path="item" type="string" required>
   Item identifier (numeric ID or URL slug)
@@ -210,7 +214,7 @@ Returns the number of active listings for an item. If `userid` is provided, retu
   }
 }
 ```
- 
+
 ### Response Fields
 
 | Field | Type | Description |
@@ -250,7 +254,7 @@ GET /item/listing/{item}/{userid}
   Game ID filter (`440` for TF2, `730` for CS2). Affects which extra info is joined.
 </ParamField>
 
-Returns paginated listings sorted by price ascending. Each listing includes backpack details.
+Returns paginated listings sorted by price ascending. The number of items per page is capped by the server configuration (`maxCount.itemListing`). Each listing includes backpack details. For non-admin callers, `user` and `ip` are omitted from each listing.
 
 ### Listing type
 
@@ -288,7 +292,7 @@ GET /item/buyorderList/{item}
   Item identifier (numeric ID)
 </ParamField>
 
-Returns all active buy orders for an item, grouped by price and sorted descending.
+Returns active buy orders for an item, grouped by price tier. Up to 5 price tiers are returned as keys `0`–`4`; additional tiers are aggregated under the key `"more"`.
 
 ### Response
 
@@ -297,22 +301,21 @@ Returns all active buy orders for an item, grouped by price and sorted descendin
   "err": false,
   "success": true,
   "content": {
-    "informations": [
-      {
-        "price": 15000,
-        "itemid": 12345,
-        "nb": 5
-      }
-    ]
+    "informations": {
+      "0": { "count": 5, "price": 15000 },
+      "1": { "count": 3, "price": 14500 },
+      "2": { "count": 12, "price": 14000 },
+      "more": { "count": 8, "price": 13500 }
+    }
   }
 }
 ```
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `price` | integer | Buy order price in cents |
-| `itemid` | integer | Item ID |
-| `nb` | integer | Total quantity at this price |
+| `informations[n].count` | integer | Total quantity at this price |
+| `informations[n].price` | integer | Buy order price in cents |
+| `informations.more` | object | Aggregated count and lowest price for remaining tiers |
 
 ---
 
@@ -328,7 +331,7 @@ GET /item/pricing/{item}
   Item identifier (numeric ID)
 </ParamField>
 
-Returns calculated pricing data for an item including lowest sale, highest buy order, Steam price, and a suggested listing price.
+Returns calculated pricing data for an item including lowest sale, highest buy order, Steam price, suggested listing price, and optional last sale.
 
 ### Response
 
@@ -338,10 +341,18 @@ Returns calculated pricing data for an item including lowest sale, highest buy o
   "success": true,
   "content": {
     "item_id": 12345,
-    "lowest_sale_price": 15000,
-    "lowest_buy_order": 12000,
-    "steam_price": 18000,
-    "suggested_price": 14999
+    "cached": true,
+    "last_updated": "2025-02-19 12:00:00",
+    "pricing": {
+      "lowest_sale_price": 15000,
+      "lowest_buy_order": 12000,
+      "steam_price": 18000,
+      "suggested_price": 14999,
+      "last_sale": {
+        "price": 14800,
+        "date": 1706745600
+      }
+    }
   }
 }
 ```
@@ -349,10 +360,13 @@ Returns calculated pricing data for an item including lowest sale, highest buy o
 | Field | Type | Description |
 |-------|------|-------------|
 | `item_id` | integer | Item ID |
-| `lowest_sale_price` | float | Lowest active listing price in cents |
-| `lowest_buy_order` | float | Highest active buy order price in cents |
-| `steam_price` | float | Steam Community Market price in cents |
-| `suggested_price` | float | Suggested listing price (lowest of sale-1 and steam-1) |
+| `cached` | boolean | Whether the result was served from cache |
+| `last_updated` | string | Last calculation or cache update (Y-m-d H:i:s) |
+| `pricing.lowest_sale_price` | float | Lowest active listing price in cents |
+| `pricing.lowest_buy_order` | float | Highest active buy order price in cents |
+| `pricing.steam_price` | float | Steam Community Market price in cents |
+| `pricing.suggested_price` | float | Suggested listing price |
+| `pricing.last_sale` | object/null | Last sale price and date (Unix timestamp) if available |
 
 <Info>
   Pricing data is cached for 20 minutes. Fresh data is calculated and stored when the cache expires.
@@ -369,10 +383,66 @@ GET /item/pricing/bulk
 **Permission:** Connected + API
 
 <ParamField query="items" type="string" required>
-  Comma-separated item IDs (maximum 20 items)
+  Comma-separated item IDs (maximum 100 items)
 </ParamField>
 
-Returns pricing data for multiple items at once.
+Returns pricing data for multiple items at once. Each entry mirrors `GET /item/pricing/{item}` pricing fields, plus **`from_cache`**: `true` if the row was read from `prices` while still considered fresh, `false` if prices were recalculated and written back to `prices`.
+
+The envelope includes **`cached_items`** and **`refreshed_items`** counts (same semantics as `from_cache`, summed over every returned row — duplicate IDs in the query string are counted separately).
+
+### Response
+
+```json
+{
+  "err": false,
+  "success": true,
+  "content": {
+    "total_items": 3,
+    "cached_items": 2,
+    "refreshed_items": 1,
+    "items": [
+      {
+        "item_id": 12345,
+        "from_cache": true,
+        "last_updated": "2025-02-19 12:00:00",
+        "pricing": {
+          "lowest_sale_price": 15000,
+          "lowest_buy_order": 12000,
+          "steam_price": 18000,
+          "suggested_price": 14999,
+          "last_sale": { "price": 14800, "date": 1706745600 }
+        }
+      },
+      {
+        "item_id": 67890,
+        "from_cache": false,
+        "last_updated": "2025-02-19 12:01:05",
+        "pricing": {
+          "lowest_sale_price": 9000,
+          "lowest_buy_order": 8500,
+          "steam_price": 9500,
+          "suggested_price": 8999,
+          "last_sale": null
+        }
+      }
+    ]
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `total_items` | integer | Number of item entries returned (same length as `items`) |
+| `cached_items` | integer | How many entries were served from cache (`from_cache` true) |
+| `refreshed_items` | integer | How many entries were recalculated and persisted (`from_cache` false) |
+| `items[].item_id` | integer | Item ID |
+| `items[].from_cache` | boolean | `true` if read from `prices` without recalculation; `false` if refreshed this request |
+| `items[].last_updated` | string | `updated_at` from DB when cached, or time of refresh (`Y-m-d H:i:s`) |
+| `items[].pricing.*` | | Same as [Get item pricing](#get-item-pricing) (`lowest_sale_price`, `lowest_buy_order`, `steam_price`, `suggested_price`, `last_sale`) |
+
+<Info>
+  Bulk pricing reuses rows in `prices` when `updated_at` is within the last **5 minute** (shorter than the single-item `GET /item/pricing/{item}` cache window). Outside that window, the API recomputes from live tables and updates `prices`.
+</Info>
 
 ### Example
 

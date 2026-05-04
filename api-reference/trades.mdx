@@ -1,7 +1,11 @@
 ---
 title: "Trades"
-description: "View active and historical trades"
+description: "Active and historical trades (Connected + API)"
 ---
+
+All endpoints in this section require **Connected + API** (JWT from `POST /user/login`, header `Authorization: Bearer`).
+
+Base URL prefix for examples: `https://api.mannco.store`.
 
 ## Get active trades
 
@@ -11,11 +15,9 @@ GET /trades/active
 
 **Permission:** Connected + API
 
-Returns all active (pending) trade offers for the authenticated user.
+Returns pending trades for the authenticated user (deposits not completed, withdrawals not finished). Shape matches your backend (`trades` array); typical fields include `id`, `status`, `items_received`, `items_send`, `user`, `bot`, `offerid`, `timestamp` (ms), `code`, `lasterror`.
 
 ### Response
-
-Returns an array of trades with status = 0 (pending).
 
 ```json
 {
@@ -40,20 +42,20 @@ Returns an array of trades with status = 0 (pending).
 }
 ```
 
-### Trade Fields
+### Trade fields (common)
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `id` | integer | Internal trade ID |
-| `user` | string | User's Steam ID |
-| `items_received` | string | Comma-separated assetIds being received |
-| `items_send` | string | Comma-separated assetIds being sent |
-| `status` | integer | Trade status (0 = pending, 3 = completed, -1 = failed, etc.) |
+| `id` | integer | Internal trade id |
+| `user` | string | User Steam ID |
+| `items_received` | string | Comma-separated asset IDs received |
+| `items_send` | string | Comma-separated asset IDs sent |
+| `status` | integer | See Introduction trade status table |
 | `bot` | string | Bot Steam ID |
-| `offerid` | string | Steam trade offer ID |
-| `timestamp` | string | Unix timestamp in milliseconds |
-| `code` | string | Trade verification code |
-| `lasterror` | string | Last error message if failed |
+| `offerid` | string | Steam trade offer id |
+| `timestamp` | string | Unix time in milliseconds |
+| `code` | string | Verification / state code |
+| `lasterror` | string | Last error if any |
 
 ---
 
@@ -65,57 +67,31 @@ GET /trades/all
 
 **Permission:** Connected + API
 
-Returns all trades for the authenticated user (or the given user if admin), including completed and failed. Hidden trades (status -11) are excluded. Results are ordered by timestamp descending and limited to the last 500 trades. No query parameters are supported.
+Returns up to the **last 500** trades for the authenticated user (completed, failed, etc.; hidden trades may be excluded per server rules). Ordered by time descending. No query parameters.
 
 ### Response
 
-Returns array of all trades (up to 500).
-
-```json
-{
-  "err": false,
-  "success": true,
-  "content": {
-    "trades": [
-      {
-        "id": 123456,
-        "items_received": "123456789",
-        "status": 3,
-        "items_send": "",
-        "user": "76561198000000000",
-        "bot": "76561198111111111",
-        "code": "COMPLETED",
-        "game": 440,
-        "lasterror": "",
-        "offerid": "5678901234",
-        "timestamp": "1706745600000"
-      }
-    ]
-  }
-}
-```
+Same wrapper as active trades: `content.trades` is an array of trade objects (may include `game` and other columns from the `trades` table).
 
 ---
 
-## Resend trade offer
+## Resend trade
 
 ```
-GET /trade/resend?resend={tradeId}
+GET /trade/resend?id={tradeId}
 ```
 
 **Permission:** Connected + API
 
-Marks a failed or cancelled trade for resend by setting its status and generating a new code. The trade must be one of: status -1, 4, 5, 6, 7, or 10, with non-empty `items_send` (withdrawal).
+Retries sending a trade that meets server conditions (e.g. withdrawal with non-empty `items_send`, statuses such as failed/pending families as implemented). **Query parameter name is `id`**, not `resend`.
 
-### Query Parameters
-
-<ParamField query="resend" type="integer" required>
-  Internal trade ID to resend
+<ParamField query="id" type="integer" required>
+  Internal trade id from **GET /trades/active** or **GET /trades/all**
 </ParamField>
 
 ### Response
 
-```json Success
+```json
 {
   "err": false,
   "success": true,
@@ -127,13 +103,13 @@ Marks a failed or cancelled trade for resend by setting its status and generatin
 }
 ```
 
-### Error Responses
+### Error responses
 
-| Status | Message | Description |
-|--------|---------|-------------|
-| `error` | Missing resend parameter | Query parameter `resend` not provided |
-| `error` | Failed to resend trade. Trade not found or conditions not met. | Trade doesn't exist, isn't owned by user, or isn't in a resendable state |
+| Type | content |
+|------|---------|
+| `error` | Missing id parameter |
+| `error` | Object with `message`: Failed to resend trade. Trade not found or conditions not met. |
 
 <Info>
-  Use the trade `id` from `GET /trades/active` or `GET /trades/all`. After a successful resend, a new offer is created with the same items and the new `code`.
+  Example: `GET https://api.mannco.store/trade/resend?id=123456` with `Authorization: Bearer <jwt>`.
 </Info>

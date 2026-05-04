@@ -3,6 +3,8 @@ title: "Offers"
 description: "Create, manage, and respond to trade offers between users"
 ---
 
+Base URL: `https://api.mannco.store`. Endpoints require **Connected + API** unless noted.
+
 ## Offer Status Codes
 
 | Status | Meaning | Description |
@@ -165,19 +167,19 @@ Creates a new trade offer to purchase an item from another user.
 
 ### Body Parameters
 
-<ParamField body="id" type="string" required>
-  Item assetId (Steam asset identifier)
+<ParamField body="id" type="integer" required>
+  Steam **assetId** of the listed item (numeric). The server loads the backpack row with `assetId` = this value, `state = 1`, and seller different from you.
 </ParamField>
 
 <ParamField body="price" type="integer" required>
-  Offer price in cents (must be &gt;= 0 and &lt; current item price)
+  Offer price in cents (must be &gt;= 0; validated against listing and balance in `createOffer`)
 </ParamField>
 
 ### Request Example
 
 ```json
 {
-  "id": "987654321",
+  "id": 987654321,
   "price": 145000
 }
 ```

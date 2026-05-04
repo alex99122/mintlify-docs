@@ -1,113 +1,118 @@
 ---
 title: "Introduction"
-description: "Overview of the Mannco.store API: authentication, base URL, errors, and permissions"
+description: "Mannco.store API (api.mannco.store): authentication, rate limits, and response format"
 ---
 
 ## Base URL
 
-All API requests are made to:
+All documented requests use:
 
 ```
-https://mannco.store
+https://api.mannco.store
 ```
 
 ## Authentication
 
-The API uses **JWT-based authentication** via API keys. You must include the JWT token in your requests.
+Programmatic access uses a **JWT** from your **API key** (created in your Mannco.store account). See [Authentication](/authentication) for `POST /user/login` and the `Authorization` header.
 
-### API Key Login Flow
+- **Routes with `connected` + `api`**: send `Authorization: Bearer <jwt>` unless noted otherwise.
+- **`GET /user/store/{identifier}`** only requires the `api` route filter — no logged-in user.
+- **JWT lifetime** is about **31 days**; the payload includes `API: true` and a bound **client IP** (see [Authentication](/authentication)).
 
-1. Obtain an API key from your Mannco.store account settings
-2. Call `POST /user/login` with your API key to receive a JWT token
-3. Include the JWT token in subsequent requests (typically via cookies or Authorization header)
+### Two-factor authentication (2FA)
 
-<Note>
-  JWT tokens expire after 31 days. You'll need to re-authenticate after expiration.
-</Note>
+Routes that include the server-side `2fa` filter **do not require** a 2FA code when you use a JWT obtained from **`POST /user/login`** (API flow). The browser session flow may still prompt for 2FA.
 
-### CSRF protection
+### CSRF
 
-All `POST` requests may require CSRF validation depending on the endpoint configuration.
+For routes that include the `api` filter, **POST** requests from API clients **do not** need the browser CSRF token. JSON bodies are supported (`Content-Type: application/json`); the router merges JSON into POST parameters.
 
-<Note>
-  POST requests accept both `application/json` and `application/x-www-form-urlencoded` content types. JSON payloads are automatically decoded.
-</Note>
+## Rate limiting
 
-## Permission levels
+When the JWT has **`API: true`**, the API may enforce per-user, per-route, per-method limits.
 
-Endpoints require specific permission levels:
+When exceeded:
 
-| Permission | Description |
-|-----------|-------------|
-| **Public** | No authentication required |
-| **API** | Valid JWT token required (obtained via API key login) |
-| **Connected** | User must be authenticated |
-| **2FA** | User must have validated 2FA for the current session |
-| **Admin** | User must have admin privileges |
+- HTTP **429**
+- Headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`, `Retry-After`
+- JSON body: `content` is a short message (retry after N seconds)
 
-Many endpoints have an admin variant that accepts a `{userid}` path parameter to operate on behalf of another user.
+Typical defaults (subject to per-user or per-endpoint overrides) are on the order of **600 requests per 60-second window** for **GET** and **POST**. Exact numbers may change without a docs update.
+
+## Scope
+
+**Only routes whose definition includes the `api` filter are documented here**, plus **`POST /user/login`** (API key exchange — required for authenticated calls).
+
+Website-only flows (browser session, cashout routes without `api`, etc.) are out of scope for these pages.
+
+### Endpoints by area
+
+| Area | Methods and paths |
+|------|-------------------|
+| **Login** | `POST /user/login` |
+| **Items** | `GET /item/details/{item}`, `GET /item/details/fromid/{backpackid}`, `GET /item/cs/details/fromid/{backpackid}`, `GET /item/salesGraph/{item}`, `GET /item/listing/count/{item}`, `GET /item/listing/count/{item}/{userid}`, `GET /item/listing/{item}`, `GET /item/listing/{item}/{userid}`, `GET /item/buyorderList/{item}`, `GET /item/pricing/bulk`, `GET /item/pricing/external`, `GET /item/pricing/{item}`, `POST /item/buyorder`, `POST /item/buyorder/update`, `POST /item/buyorder/remove` |
+| **Buy orders (user)** | `GET /user/buyorder/{item}`, `GET /user/getBuyorder` |
+| **Inventory** | `GET /inventory/onSale`, `GET /inventory/onInventory`, `POST /inventory/withdraw`, `POST /inventory/price` |
+| **Trades** | `GET /trades/active`, `GET /trades/all`, `GET /trade/resend` |
+| **Offers** | `GET /offers/received`, `GET /offers/my`, `POST /offers/create`, `POST /offers/decline`, `POST /offers/remove`, `POST /offers/accept` |
+| **Deposit** | `POST /deposit/trade`, `POST /deposit/trade/instant`, `GET /deposit/tradeStatus/{tradeid}`, `GET /deposit/instantSell/{game}`, `GET /deposit/{game}` |
+| **Cart** | `GET /cart/get`, `POST /cart/add`, `POST /cart/bulk`, `POST /cart/remove`, `POST /cart/update`, `POST /cart/clear` |
+| **Payment** | `POST /payment/{provider}` |
+| **User** | `GET /user/disconnect`, `GET /user/infos`, `GET /user/balance`, `GET /user/notifications`, `GET /user/store/{identifier}`, `GET /user/ipList`, `GET /user/getSalesInfos`, `GET /user/getSalesChartInfos`, `GET /user/getBalanceHistory`, `GET /user/getPurchaseHistory`, `GET /user/getSalesHistory`, `GET /user/getCashoutHistory`, `GET /user/getTransactionHistory`, `GET /user/getTransactionDetails`, `GET /user/getBuyorder` |
+| **Partner** | `POST /webhook/vendor/{provider}` |
+
+Admin-only variants (extra `{userid}` path segments) are not detailed here.
 
 ## Response format
 
-All API responses return JSON with a **standardized structure**:
+All JSON responses share this shape.
 
-### Success responses
+### Success
 
 ```json
 {
   "err": false,
   "success": true,
-  "content": {
-    /* Response data here */
-  }
+  "content": {}
 }
 ```
 
-### Error responses
+Payload data is always under **`content`**.
+
+### Business error (`Response("error", …)`)
+
+Often HTTP **300** with:
 
 ```json
 {
   "err": true,
   "success": false,
-  "content": "Error message description"
+  "content": "Error message"
 }
 ```
 
-### Response fields
+`content` may be a string or an object depending on the endpoint.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `err` | boolean | `false` for success, `true` for errors |
-| `success` | boolean | `true` for success, `false` for errors |
-| `content` | object/string | Response data (object) for success, error message (string) for errors |
+### Common HTTP status codes
 
-## Error codes
-
-| HTTP Code | Response Type | Description |
-|-----------|---------------|-------------|
-| `200` | Success | Request completed successfully |
-| `300` | Error | General error (business logic error) |
-| `403` | Forbidden/Unauthorized | Insufficient permissions, invalid CSRF, or invalid API key |
-| `404` | Not Found | Endpoint or resource not found |
-| `500` | Server Error | Internal server error |
-
-### Specific error responses
-
-| Status | Message |
-|--------|---------|
-| `error` | Missing required parameter: apiKey |
-| `forbidden` | Invalid API key |
-| `forbidden` | Country blocked |
+| Code | Meaning |
+|------|---------|
+| `200` | Success |
+| `300` | Business error (`error`) |
+| `403` | Forbidden / unauthorized (`forbidden`, invalid JWT, blocked country, etc.) |
+| `404` | Not found |
+| `429` | Rate limited |
+| `500` | Server error |
 
 ## Prices
 
-All prices in the API are stored as **integers in cents**. For example, `$1.50` is represented as `150`.
+Monetary amounts are **integer cents** (e.g. `150` = $1.50 where applicable).
 
 ## Common types
 
 ### SteamID
 
-User identifiers are Steam 64-bit IDs (e.g., `76561198000000000`), passed as strings.
+64-bit Steam ID as a string, e.g. `76561198000000000`.
 
 ### Game IDs
 
@@ -118,32 +123,32 @@ User identifiers are Steam 64-bit IDs (e.g., `76561198000000000`), passed as str
 | Dota 2 | `570` |
 | Rust | `252490` |
 
-### Item states (backpack)
+### Backpack / listing states
 
-| State | Description |
-|-------|-------------|
-| `0` | In user inventory (not listed) |
+| State | Meaning |
+|-------|---------|
+| `0` | In inventory (not listed) |
 | `1` | Listed for sale |
 | `2` | Pending withdrawal |
 | `3` | In active trade |
-| Negative | Reserved for giveaway |
+| Negative | Reserved (e.g. giveaway) |
 
 ### Offer statuses
 
-| Status | Description |
-|--------|-------------|
-| `0` | Active / Pending |
+| Status | Meaning |
+|--------|---------|
+| `0` | Active / pending |
 | `1` | Accepted |
 | `2` | Declined |
-| `3` | Removed / Cancelled |
-| `-1` | Auto-cancelled: buyer insufficient balance |
-| `-2` | Auto-cancelled: offer expired |
-| `-3` | Auto-cancelled: item no longer available |
+| `3` | Removed / cancelled |
+| `-1` | Auto-cancelled: buyer balance |
+| `-2` | Auto-cancelled: expired |
+| `-3` | Auto-cancelled: item unavailable |
 
 ### Trade statuses
 
-| Status | Description |
-|--------|-------------|
+| Status | Meaning |
+|--------|---------|
 | `0` | Pending |
 | `3` | Completed |
 | `-1` | Failed |
