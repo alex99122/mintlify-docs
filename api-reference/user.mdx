@@ -207,12 +207,29 @@ GET /user/getSalesHistory
 
 **Permission:** Connected + API
 
-<ParamField query="page" type="integer" />
-<ParamField query="perPage" type="integer">
-  Max **50**.
+An admin variant `GET /user/getSalesHistory/{userid}` (**Connected + admin**) returns the sales history of another user.
+
+### Query parameters
+
+<ParamField query="page" type="integer" default="0">
+  Page number (multiplied by `perPage` for the offset).
 </ParamField>
 
-Optional `range`, `search` (see handler).
+<ParamField query="perPage" type="integer" default="10">
+  Page size (max **50**). Note camelCase **`perPage`**.
+</ParamField>
+
+<ParamField query="range" type="string" default="1W">
+  Time window: `1W` (7 days), `1M` (31 days), `1Y` (365 days), or `All` / `all` (no limit). Any other value falls back to `1W`.
+</ParamField>
+
+<ParamField query="search" type="string">
+  Optional search term. Must be **at least 3 characters**, otherwise the request fails with `Search must be at least 3 characters`.
+</ParamField>
+
+### Response
+
+First page (`page` = 0) returns `values` and `count`; later pages return only `values`.
 
 ---
 
