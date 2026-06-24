@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Mannco.store API",
-    "description": "Complete API documentation for Mannco.store - Buy and sell TF2, CS:GO, Dota 2, Rust and Steam community items. All routes use the `api` filter. Endpoints marked Connected + API require an `Authorization: Bearer <jwt>` token obtained from POST /user/login. Endpoints marked API only do not require a user session.",
+    "description": "Complete API documentation for Mannco.store - Buy and sell TF2, CS:GO, Dota 2, Rust and Steam community items. All routes use the `api` filter. Every endpoint requires an `Authorization: Bearer <jwt>` token obtained from POST /user/login. The only exception is the login endpoint itself, which is used to obtain the token.",
     "version": "1.0.0"
   },
   "servers": [
@@ -130,8 +130,12 @@
           "Items"
         ],
         "summary": "Get item details",
-        "description": "Returns full item details from the `items` table. You can pass either a numeric item ID or a URL slug.\n\n**Permission:** API only (no session required).",
-        "security": [],
+        "description": "Returns full item details from the `items` table. You can pass either a numeric item ID or a URL slug.\n\n**Permission:** Connected + API.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ItemPathParam"
@@ -288,8 +292,12 @@
           "Items"
         ],
         "summary": "Get listing count",
-        "description": "Returns the number of active listings for an item. The variant `GET /item/listing/count/{item}/{userid}` returns the count for a specific seller only.\n\n**Permission:** API.",
-        "security": [],
+        "description": "Returns the number of active listings for an item. The variant `GET /item/listing/count/{item}/{userid}` returns the count for a specific seller only.\n\n**Permission:** Connected + API.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ItemPathParam"
@@ -329,8 +337,12 @@
           "Items"
         ],
         "summary": "Get item listings",
-        "description": "Returns paginated listings sorted by price ascending. The variant `GET /item/listing/{item}/{userid}` filters by seller. For non-admin callers, `user` and `ip` are omitted.\n\n**Permission:** API.",
-        "security": [],
+        "description": "Returns paginated listings sorted by price ascending. The variant `GET /item/listing/{item}/{userid}` filters by seller. For non-admin callers, `user` and `ip` are omitted.\n\n**Permission:** Connected + API.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ItemPathParam"
@@ -401,8 +413,12 @@
           "Items"
         ],
         "summary": "Get buy order list",
-        "description": "Returns active buy orders for an item, grouped by price tier. Up to 5 tiers are returned as keys 0-4; additional tiers are aggregated under `more`.\n\n**Permission:** API.",
-        "security": [],
+        "description": "Returns active buy orders for an item, grouped by price tier. Up to 5 tiers are returned as keys 0-4; additional tiers are aggregated under `more`.\n\n**Permission:** Connected + API.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/ItemPathParam"
@@ -639,8 +655,12 @@
           "Items"
         ],
         "summary": "Get item details from backpack ID (TF2)",
-        "description": "Returns full backpack + item details for a TF2 item by its asset ID. Joins `backpack`, `items`, and `item_infos`. The `craftable` field is empty for non-TF2 games.\n\n**Permission:** API.",
-        "security": [],
+        "description": "Returns full backpack + item details for a TF2 item by its asset ID. Joins `backpack`, `items`, and `item_infos`. The `craftable` field is empty for non-TF2 games.\n\n**Permission:** Connected + API.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "name": "backpackid",
@@ -694,8 +714,12 @@
           "Items"
         ],
         "summary": "Get item details from backpack ID (CS2)",
-        "description": "Same as the TF2 variant but specifically for CS2 items with wear, sticker, and pattern information.\n\n**Permission:** API.",
-        "security": [],
+        "description": "Same as the TF2 variant but specifically for CS2 items with wear, sticker, and pattern information.\n\n**Permission:** Connected + API.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "name": "backpackid",
@@ -2861,8 +2885,12 @@
           "User Account"
         ],
         "summary": "Public store profile",
-        "description": "Returns minimal public info (steamId, image, name) for a store, or an error if not found.\n\n**Permission:** API route filter only (no Bearer required).",
-        "security": [],
+        "description": "Returns minimal public info (steamId, image, name) for a store, or an error if not found.\n\n**Permission:** Connected + API.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "name": "identifier",
