@@ -1,0 +1,22 @@
+---
+title: "Offer status codes"
+description: "Offer status code reference and validation behavior"
+---
+
+Base URL: `https://api.mannco.store`. Endpoints require **Connected + API** unless noted.
+
+## Offer Status Codes
+
+| Status | Meaning | Description |
+| ------ | ------- | ----------- |
+| `0` | **Active** | Pending offer, awaiting response |
+| `1` | **Accepted** | Offer was accepted and completed |
+| `2` | **Declined** | Offer was declined by recipient |
+| `3` | **Removed/Cancelled** | Offer was cancelled by creator |
+| `-1` | **Invalid Balance** | Buyer has insufficient balance |
+| `-2` | **Expired** | Offer expired (past expiration time) |
+| `-3` | **Invalid Item** | Item no longer available or not owned by recipient |
+
+<Info>
+Offers are automatically validated when retrieved via `GET` endpoints. Invalid offers (expired, insufficient balance, item unavailable) are automatically updated with negative status codes.
+</Info>

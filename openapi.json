@@ -1,0 +1,3668 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Mannco.store API",
+    "description": "Complete API documentation for Mannco.store - Buy and sell TF2, CS:GO, Dota 2, Rust and Steam community items. All routes use the `api` filter. Endpoints marked Connected + API require an `Authorization: Bearer <jwt>` token obtained from POST /user/login. Endpoints marked API only do not require a user session.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.mannco.store",
+      "description": "Production"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Auth",
+      "description": "Authentication and login"
+    },
+    {
+      "name": "Items",
+      "description": "Item details, listings, pricing, and sales graphs"
+    },
+    {
+      "name": "Offers",
+      "description": "Create, manage, and respond to trade offers"
+    },
+    {
+      "name": "Buy Orders",
+      "description": "Create, update, and manage buy orders"
+    },
+    {
+      "name": "Payment",
+      "description": "Checkout sessions for balance and cart payments"
+    },
+    {
+      "name": "Inventory",
+      "description": "Manage user inventory: list, price, and withdraw"
+    },
+    {
+      "name": "Cart",
+      "description": "Manage the shopping cart"
+    },
+    {
+      "name": "Listing",
+      "description": "Deposit Steam items and instant sell"
+    },
+    {
+      "name": "Trading",
+      "description": "Active and historical trades"
+    },
+    {
+      "name": "User Account",
+      "description": "Account, balance, sessions, and history"
+    }
+  ],
+  "paths": {
+    "/user/login": {
+      "post": {
+        "operationId": "login",
+        "tags": [
+          "Auth"
+        ],
+        "summary": "API login",
+        "description": "Authenticates and returns a JWT used as `Authorization: Bearer <jwt>` for Connected + API endpoints.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "apiKey"
+                ],
+                "properties": {
+                  "apiKey": {
+                    "type": "string",
+                    "description": "Your Mannco.store API key"
+                  }
+                }
+              },
+              "example": {
+                "apiKey": "YOUR_API_KEY"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authenticated",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "jwt": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "300": {
+            "$ref": "#/components/responses/BusinessError"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/item/details/{item}": {
+      "get": {
+        "operationId": "getItemDetails",
+        "x-mint": {
+          "href": "/api-reference/items/get-item-details"
+        },
+        "tags": [
+          "Items"
+        ],
+        "summary": "Get item details",
+        "description": "Returns full item details from the `items` table. You can pass either a numeric item ID or a URL slug.\n\n**Permission:** API only (no session required).",
+        "security": [],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ItemPathParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Item details",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "informations": {
+                      "id": 101869,
+                      "name": "Souvenir M4A1-S | Imminent Danger (Field-Tested)",
+                      "quality": "Souvenir;",
+                      "type": "Rifle",
+                      "rarity": "Covert",
+                      "deal": 71708,
+                      "color": "ffd700",
+                      "game": 730,
+                      "weapon": "M4A1-S",
+                      "exterior": "Field-Tested",
+                      "url": "730-souvenir-m4a1-s-imminent-danger-field-tested"
+                    }
+                  }
+                },
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "content": {
+                          "type": "object",
+                          "properties": {
+                            "informations": {
+                              "$ref": "#/components/schemas/Item"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/item/salesGraph/{item}": {
+      "get": {
+        "operationId": "getItemSalesGraph",
+        "tags": [
+          "Items"
+        ],
+        "summary": "Get item sales graph",
+        "description": "Returns historical sales data for charting, aggregated from `items_stats`. For periods `5Y` and `ALL`, data is grouped by week instead of by day.\n\n**Permission:** Connected + API.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ItemPathParam"
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "required": true,
+            "description": "Time period: 1M, 3M, 6M, 1Y, 5Y, or ALL",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1M",
+                "3M",
+                "6M",
+                "1Y",
+                "5Y",
+                "ALL"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sales data",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "daily": {
+                    "summary": "Daily data (1M, 3M, 6M, 1Y)",
+                    "value": {
+                      "err": false,
+                      "success": true,
+                      "content": {
+                        "values": [
+                          {
+                            "date": "2025-01-15 00:00:00",
+                            "price": 50000,
+                            "nb": 3
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "weekly": {
+                    "summary": "Weekly data (5Y, ALL)",
+                    "value": {
+                      "err": false,
+                      "success": true,
+                      "content": {
+                        "values": [
+                          {
+                            "first_date": "2025-01-13",
+                            "week": "202502",
+                            "total_price": 150000,
+                            "total_nb": 8
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/item/listing/count/{item}": {
+      "get": {
+        "operationId": "getListingCount",
+        "tags": [
+          "Items"
+        ],
+        "summary": "Get listing count",
+        "description": "Returns the number of active listings for an item. The variant `GET /item/listing/count/{item}/{userid}` returns the count for a specific seller only.\n\n**Permission:** API.",
+        "security": [],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ItemPathParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Listing count",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "count": 13291
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/item/listing/{item}": {
+      "get": {
+        "operationId": "getItemListings",
+        "tags": [
+          "Items"
+        ],
+        "summary": "Get item listings",
+        "description": "Returns paginated listings sorted by price ascending. The variant `GET /item/listing/{item}/{userid}` filters by seller. For non-admin callers, `user` and `ip` are omitted.\n\n**Permission:** API.",
+        "security": [],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ItemPathParam"
+          },
+          {
+            "$ref": "#/components/parameters/CountParam"
+          },
+          {
+            "$ref": "#/components/parameters/PageParam"
+          },
+          {
+            "$ref": "#/components/parameters/GameQueryParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Listings",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": [
+                    {
+                      "id": 1,
+                      "assetId": "987654321",
+                      "item_id": 5678,
+                      "state": 1,
+                      "price": 15000,
+                      "game": 440
+                    }
+                  ]
+                },
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "content": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Listing"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/item/buyorderList/{item}": {
+      "get": {
+        "operationId": "getBuyOrderList",
+        "tags": [
+          "Items"
+        ],
+        "summary": "Get buy order list",
+        "description": "Returns active buy orders for an item, grouped by price tier. Up to 5 tiers are returned as keys 0-4; additional tiers are aggregated under `more`.\n\n**Permission:** API.",
+        "security": [],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ItemPathParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Buy orders by tier",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "informations": {
+                      "0": {
+                        "count": 5,
+                        "price": 15000
+                      },
+                      "more": {
+                        "count": 8,
+                        "price": 13500
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/item/prices": {
+      "get": {
+        "operationId": "getItemPricesByGame",
+        "tags": [
+          "Items"
+        ],
+        "summary": "Get item prices by game",
+        "description": "Returns a list of items for the given game with name, craftable flag, effect, URL slug, in-stock asset count, and lowest sale price.\n\n**Permission:** Connected + API. **Rate limit:** 1 request per 5 minutes per API key.",
+        "parameters": [
+          {
+            "name": "game",
+            "in": "query",
+            "required": true,
+            "description": "Game App ID: 440, 730, 570, 252490, or 753",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "outofstock",
+            "in": "query",
+            "description": "0 = in-stock only, 1 = include out-of-stock",
+            "schema": {
+              "type": "integer",
+              "enum": [
+                0,
+                1
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Item prices",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": [
+                    {
+                      "name": "The Scottish Handshake",
+                      "craftable": 1,
+                      "effect": "",
+                      "url": "440-the-scottish-handshake",
+                      "assetcount": 809,
+                      "price": 1
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/item/pricing/{item}": {
+      "get": {
+        "operationId": "getItemPricing",
+        "tags": [
+          "Items"
+        ],
+        "summary": "Get item pricing",
+        "description": "Returns calculated pricing data including lowest sale, highest buy order, Steam price, suggested listing price, and optional last sale. Cached for 20 minutes.\n\n**Permission:** Connected + API.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ItemPathParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pricing data",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "item_id": 12345,
+                    "cached": true,
+                    "last_updated": "2025-02-19 12:00:00",
+                    "pricing": {
+                      "lowest_sale_price": 15000,
+                      "lowest_buy_order": 12000,
+                      "steam_price": 18000,
+                      "suggested_price": 14999,
+                      "last_sale": {
+                        "price": 14800,
+                        "date": 1706745600
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/item/pricing/bulk": {
+      "get": {
+        "operationId": "getBulkPricing",
+        "tags": [
+          "Items"
+        ],
+        "summary": "Get bulk pricing",
+        "description": "Returns pricing data for multiple items at once. Each entry adds `from_cache`. The envelope includes `cached_items` and `refreshed_items` counts. Reuses rows in `prices` when updated within the last 5 minutes.\n\n**Permission:** Connected + API.",
+        "parameters": [
+          {
+            "name": "items",
+            "in": "query",
+            "required": true,
+            "description": "Comma-separated item IDs (maximum 100)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bulk pricing",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "total_items": 2,
+                    "cached_items": 1,
+                    "refreshed_items": 1,
+                    "items": [
+                      {
+                        "item_id": 12345,
+                        "from_cache": true,
+                        "last_updated": "2025-02-19 12:00:00",
+                        "pricing": {
+                          "lowest_sale_price": 15000,
+                          "lowest_buy_order": 12000,
+                          "steam_price": 18000,
+                          "suggested_price": 14999,
+                          "last_sale": {
+                            "price": 14800,
+                            "date": 1706745600
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/item/details/fromid/{backpackid}": {
+      "get": {
+        "operationId": "getItemDetailsFromBackpackTf2",
+        "tags": [
+          "Items"
+        ],
+        "summary": "Get item details from backpack ID (TF2)",
+        "description": "Returns full backpack + item details for a TF2 item by its asset ID. Joins `backpack`, `items`, and `item_infos`. The `craftable` field is empty for non-TF2 games.\n\n**Permission:** API.",
+        "security": [],
+        "parameters": [
+          {
+            "name": "backpackid",
+            "in": "path",
+            "required": true,
+            "description": "Backpack asset ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Backpack item details",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "informations": {
+                      "id": 1,
+                      "assetId": "987654321",
+                      "item_id": 5678,
+                      "state": 1,
+                      "name": "Team Captain",
+                      "quality": "Unusual",
+                      "game": 440
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/item/cs/details/fromid/{backpackid}": {
+      "get": {
+        "operationId": "getItemDetailsFromBackpackCs2",
+        "tags": [
+          "Items"
+        ],
+        "summary": "Get item details from backpack ID (CS2)",
+        "description": "Same as the TF2 variant but specifically for CS2 items with wear, sticker, and pattern information.\n\n**Permission:** API.",
+        "security": [],
+        "parameters": [
+          {
+            "name": "backpackid",
+            "in": "path",
+            "required": true,
+            "description": "Backpack asset ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Backpack item details",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "informations": {
+                      "id": 1,
+                      "assetId": "987654321",
+                      "item_id": 5678,
+                      "wear": 0.15,
+                      "game": 730
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/offers/received": {
+      "get": {
+        "operationId": "getReceivedOffers",
+        "x-mint": {
+          "href": "/api-reference/offers/get-received-offers"
+        },
+        "tags": [
+          "Offers"
+        ],
+        "summary": "Get received offers",
+        "description": "Returns trade offers received from other users (current user is the seller). Offers are auto-validated; those with status < 0 are filtered out.\n\n**Permission:** Connected + API.",
+        "responses": {
+          "200": {
+            "description": "Received offers",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "offers": [
+                      {
+                        "id": 12345,
+                        "from": "76561198000000000",
+                        "to": "76561198111111111",
+                        "status": 0,
+                        "price": 150000,
+                        "item": {
+                          "name": "Team Captain",
+                          "game": 440
+                        }
+                      }
+                    ]
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/offers/my": {
+      "get": {
+        "operationId": "getMyOffers",
+        "tags": [
+          "Offers"
+        ],
+        "summary": "Get my offers",
+        "description": "Returns trade offers sent to other users (current user is the buyer). Note: this returns an array directly in `content`, unlike `/offers/received`.\n\n**Permission:** Connected + API.",
+        "responses": {
+          "200": {
+            "description": "Sent offers",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": [
+                    {
+                      "id": 12345,
+                      "from": "76561198000000000",
+                      "to": "76561198111111111",
+                      "status": 0,
+                      "price": 150000
+                    }
+                  ]
+                },
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "content": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Offer"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/offers/create": {
+      "post": {
+        "operationId": "createOffer",
+        "tags": [
+          "Offers"
+        ],
+        "summary": "Create offer",
+        "description": "Creates a new trade offer to purchase an item from another user.\n\n**Permission:** Connected + API.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "price"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "description": "Steam assetId of the listed item"
+                  },
+                  "price": {
+                    "type": "integer",
+                    "description": "Offer price in cents (>= 0)"
+                  }
+                }
+              },
+              "example": {
+                "id": 987654321,
+                "price": 145000
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Offer created",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "message": "Offer created successfully"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "300": {
+            "$ref": "#/components/responses/BusinessError"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/offers/accept": {
+      "post": {
+        "operationId": "acceptOffer",
+        "tags": [
+          "Offers"
+        ],
+        "summary": "Accept offer",
+        "description": "Accepts a received trade offer and completes the transaction (seller action).\n\n**Permission:** Connected + API.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "description": "The offer ID to accept"
+                  }
+                }
+              },
+              "example": {
+                "id": 12345
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Offer accepted",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "message": "Offer accepted successfully"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "300": {
+            "$ref": "#/components/responses/BusinessError"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/offers/decline": {
+      "post": {
+        "operationId": "declineOffer",
+        "tags": [
+          "Offers"
+        ],
+        "summary": "Decline offer",
+        "description": "Declines a received trade offer (seller action).\n\n**Permission:** Connected + API.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "description": "The offer ID to decline"
+                  }
+                }
+              },
+              "example": {
+                "id": 12345
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Offer declined",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "message": "Offer declined successfully"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "300": {
+            "$ref": "#/components/responses/BusinessError"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/offers/remove": {
+      "post": {
+        "operationId": "removeOffer",
+        "tags": [
+          "Offers"
+        ],
+        "summary": "Remove/Cancel offer",
+        "description": "Cancels a sent offer (buyer action). Only the offer creator can remove it.\n\n**Permission:** Connected + API.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "description": "The offer ID to cancel"
+                  }
+                }
+              },
+              "example": {
+                "id": 12345
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Offer removed",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "message": "Offer removed successfully"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "300": {
+            "$ref": "#/components/responses/BusinessError"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/item/buyorder": {
+      "post": {
+        "operationId": "createBuyOrder",
+        "x-mint": {
+          "href": "/api-reference/buy-orders/create-buy-order"
+        },
+        "tags": [
+          "Buy Orders"
+        ],
+        "summary": "Create buy order",
+        "description": "Creates a buy order for a specific item at a specified price. Only one buy order per item per user. The total (value x amount) is reserved from your balance.\n\n**Permission:** Connected + API.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "itemid",
+                  "value",
+                  "amount"
+                ],
+                "properties": {
+                  "itemid": {
+                    "type": "integer",
+                    "description": "Item ID"
+                  },
+                  "value": {
+                    "type": "integer",
+                    "description": "Buy order price in cents (positive)"
+                  },
+                  "amount": {
+                    "type": "integer",
+                    "description": "Number of items to buy (max 499999 per create)"
+                  }
+                }
+              },
+              "example": {
+                "itemid": 12345,
+                "value": 15000,
+                "amount": 3
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Buy order created",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "details": "Inserted"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "300": {
+            "$ref": "#/components/responses/BusinessError"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/item/buyorder/update": {
+      "post": {
+        "operationId": "updateBuyOrder",
+        "tags": [
+          "Buy Orders"
+        ],
+        "summary": "Update buy order",
+        "description": "Replaces your existing buy order for the same item with a new price and/or quantity. You must already have a buy order on the item.\n\n**Permission:** Connected + API.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "itemid",
+                  "value",
+                  "amount"
+                ],
+                "properties": {
+                  "itemid": {
+                    "type": "integer",
+                    "description": "Item ID of the buy order to update"
+                  },
+                  "value": {
+                    "type": "integer",
+                    "description": "New price in cents (positive)"
+                  },
+                  "amount": {
+                    "type": "integer",
+                    "description": "New quantity (max 4999)"
+                  }
+                }
+              },
+              "example": {
+                "itemid": 12345,
+                "value": 16000,
+                "amount": 5
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Buy order updated",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": "Buy order updated"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "300": {
+            "$ref": "#/components/responses/BusinessError"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/item/buyorder/remove": {
+      "post": {
+        "operationId": "removeBuyOrder",
+        "tags": [
+          "Buy Orders"
+        ],
+        "summary": "Remove buy order",
+        "description": "Cancels and removes your buy order for an item, releasing the reserved balance.\n\n**Permission:** Connected + API.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "itemid"
+                ],
+                "properties": {
+                  "itemid": {
+                    "type": "integer",
+                    "description": "Item ID of the buy order to remove"
+                  }
+                }
+              },
+              "example": {
+                "itemid": 12345
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Buy order removed",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "details": "Removed"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "300": {
+            "$ref": "#/components/responses/BusinessError"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/user/buyorder/{item}": {
+      "get": {
+        "operationId": "getUserBuyOrderForItem",
+        "tags": [
+          "Buy Orders"
+        ],
+        "summary": "Get user's buy orders for an item",
+        "description": "Returns all active buy orders for a specific item created by the authenticated user.\n\n**Permission:** Connected + API.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ItemPathParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Buy order",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "informations": {
+                      "id": 98765,
+                      "steamid": "76561198000000000",
+                      "itemid": 12345,
+                      "price": 15000,
+                      "amount": 3,
+                      "timestamp": "1706745600"
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/user/getBuyorder": {
+      "get": {
+        "operationId": "getAllUserBuyOrders",
+        "tags": [
+          "Buy Orders"
+        ],
+        "summary": "Get all user's buy orders",
+        "description": "Returns active buy orders for the authenticated user across all items. Ordered by `buyorder.id DESC`; only returns buy orders where `amount != 0`.\n\n**Permission:** Connected + API.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageParam"
+          },
+          {
+            "$ref": "#/components/parameters/CountParam"
+          },
+          {
+            "$ref": "#/components/parameters/SearchParam"
+          },
+          {
+            "name": "undercut",
+            "in": "query",
+            "description": "Filter to buy orders below the current lowest sale price",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Buy orders",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "values": [
+                      {
+                        "id": 98765,
+                        "itemid": 12345,
+                        "price": 15000,
+                        "amount": 3,
+                        "name": "Burning Flames Team Captain",
+                        "game": 440
+                      }
+                    ],
+                    "count": {
+                      "nb": 15
+                    }
+                  }
+                },
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "content": {
+                          "type": "object",
+                          "properties": {
+                            "values": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/BuyOrder"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/payment/{provider}": {
+      "post": {
+        "operationId": "createPayment",
+        "x-mint": {
+          "href": "/api-reference/payment/create-payment-session"
+        },
+        "tags": [
+          "Payment"
+        ],
+        "summary": "Create payment session",
+        "description": "Initiates a payment. The server validates the body with the provider, records the transaction, and returns a redirect URL or a success message. Use `type: balance` to add credit or `type: items` to pay for listed items. The `mannco` provider only supports `type: items`.\n\n**Permission:** Connected + API.",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "required": true,
+            "description": "payviox (card / external checkout) or mannco (on-site balance)",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "payviox",
+                "mannco"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "type",
+                  "tos_timestamp"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "balance",
+                      "items"
+                    ],
+                    "description": "balance (add credit) or items (pay for listed items)"
+                  },
+                  "tos_timestamp": {
+                    "type": "integer",
+                    "description": "Client timestamp of Terms of Service acceptance"
+                  },
+                  "value": {
+                    "type": "integer",
+                    "description": "For type=balance: amount in cents to add"
+                  },
+                  "items": {
+                    "type": "string",
+                    "description": "For type=items: comma-separated Steam assetId values"
+                  },
+                  "payment_method": {
+                    "type": "string",
+                    "description": "Optional provider-specific payment method id"
+                  }
+                }
+              },
+              "examples": {
+                "balance": {
+                  "summary": "Balance deposit",
+                  "value": {
+                    "type": "balance",
+                    "value": 10000,
+                    "tos_timestamp": 1706745600,
+                    "payment_method": null
+                  }
+                },
+                "items": {
+                  "summary": "Pay for items",
+                  "value": {
+                    "type": "items",
+                    "items": "987654321,987654322",
+                    "tos_timestamp": 1706745600
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Payment initiated",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "redirect": {
+                    "summary": "Redirect URL",
+                    "value": {
+                      "err": false,
+                      "success": true,
+                      "content": {
+                        "url": "https://payment-provider.example/checkout/..."
+                      }
+                    }
+                  },
+                  "processed": {
+                    "summary": "Processed immediately",
+                    "value": {
+                      "err": false,
+                      "success": true,
+                      "content": {
+                        "message": "Payment processed successfully"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "300": {
+            "$ref": "#/components/responses/BusinessError"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/inventory/onSale": {
+      "get": {
+        "operationId": "getItemsOnSale",
+        "x-mint": {
+          "href": "/api-reference/inventory/get-items-on-sale"
+        },
+        "tags": [
+          "Inventory"
+        ],
+        "summary": "Get items on sale",
+        "description": "Returns all items currently listed for sale by the authenticated user (state = 1).\n\n**Permission:** Connected + API.",
+        "responses": {
+          "200": {
+            "description": "Items on sale",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "items": [
+                      {
+                        "ids": "987654321,987654322",
+                        "count": 2,
+                        "item_id": 5678,
+                        "state": 1,
+                        "price": 15000,
+                        "name": "Unusual Burning Flames Team Captain",
+                        "game": 440
+                      }
+                    ],
+                    "count": 25
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/inventory/onInventory": {
+      "get": {
+        "operationId": "getItemsInInventory",
+        "tags": [
+          "Inventory"
+        ],
+        "summary": "Get items in inventory",
+        "description": "Returns all items in the authenticated user's inventory (not listed for sale, state = 0).\n\n**Permission:** Connected + API.",
+        "responses": {
+          "200": {
+            "description": "Inventory items",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "items": [
+                      {
+                        "ids": "987654322",
+                        "count": 1,
+                        "item_id": 5679,
+                        "state": 0,
+                        "name": "Strange Shotgun",
+                        "game": 440
+                      }
+                    ],
+                    "count": 10
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/inventory/price": {
+      "post": {
+        "operationId": "setItemPrice",
+        "tags": [
+          "Inventory"
+        ],
+        "summary": "Set item price",
+        "description": "Sets a price for items and matches them with existing buy orders. If a buy order exists at or above your price, the item is instantly sold (seller receives 95%, 5% platform fee); otherwise it is listed.\n\n**Permission:** Connected + API.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "ids",
+                  "price"
+                ],
+                "properties": {
+                  "ids": {
+                    "type": "string",
+                    "description": "Comma-separated asset IDs to price"
+                  },
+                  "price": {
+                    "type": "integer",
+                    "description": "Price in cents (1 to 5,000,000)"
+                  }
+                }
+              },
+              "example": {
+                "ids": "12345678,87654321",
+                "price": 150
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Priced",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "message": "ok"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "300": {
+            "$ref": "#/components/responses/BusinessError"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/inventory/withdraw": {
+      "post": {
+        "operationId": "withdrawItems",
+        "tags": [
+          "Inventory"
+        ],
+        "summary": "Withdraw items",
+        "description": "Initiates a trade offer to withdraw items from the user's Mannco.store inventory to their Steam account. Items must be state 0 or 1 to be withdrawable.\n\n**Permission:** Connected + API.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "ids"
+                ],
+                "properties": {
+                  "ids": {
+                    "type": "string",
+                    "description": "Comma-separated asset IDs to withdraw"
+                  }
+                }
+              },
+              "example": {
+                "ids": "12345678,87654321"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Withdrawal processed",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "message": "Items withdrawal processed",
+                    "updated": 3,
+                    "locked": 0
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "300": {
+            "$ref": "#/components/responses/BusinessError"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/cart/get": {
+      "get": {
+        "operationId": "getCart",
+        "x-mint": {
+          "href": "/api-reference/cart/get-cart"
+        },
+        "tags": [
+          "Cart"
+        ],
+        "summary": "Get cart",
+        "description": "Returns the authenticated user's cart with full item details for each row. Each row can group one or more asset IDs for the same item at the same price.\n\n**Permission:** Connected + API.",
+        "responses": {
+          "200": {
+            "description": "Cart",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "cart": [
+                      {
+                        "cartId": 42,
+                        "assetId": "987654321,987654322",
+                        "count": 2,
+                        "item_id": 5678,
+                        "price": 15000,
+                        "name": "Unusual Burning Flames Team Captain",
+                        "game": 440
+                      }
+                    ]
+                  }
+                },
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "content": {
+                          "type": "object",
+                          "properties": {
+                            "cart": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/CartItem"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/cart/add": {
+      "post": {
+        "operationId": "addToCart",
+        "tags": [
+          "Cart"
+        ],
+        "summary": "Add item to cart",
+        "description": "Adds a single item to the cart by its asset ID. The item must be for sale (state = 1) and not owned by you. The price is stored at add time.\n\n**Permission:** Connected + API.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "assetId"
+                ],
+                "properties": {
+                  "assetId": {
+                    "type": "string",
+                    "description": "Steam asset ID of the item to add"
+                  }
+                }
+              },
+              "example": {
+                "assetId": "987654321"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Added",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "cart": [
+                      {
+                        "cartId": 43,
+                        "assetId": "987654321",
+                        "count": 1,
+                        "item_id": 5678,
+                        "price": 15000
+                      }
+                    ]
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "300": {
+            "$ref": "#/components/responses/BusinessError"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/cart/bulk": {
+      "post": {
+        "operationId": "bulkAddToCart",
+        "tags": [
+          "Cart"
+        ],
+        "summary": "Bulk add to cart",
+        "description": "Adds multiple items of the same type in one call, selecting the cheapest available listings (excluding items already in your cart). Items are grouped by price.\n\n**Permission:** Connected + API.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "itemId",
+                  "count"
+                ],
+                "properties": {
+                  "itemId": {
+                    "type": "integer",
+                    "description": "Item type ID"
+                  },
+                  "count": {
+                    "type": "integer",
+                    "description": "Number of items to add (positive)"
+                  },
+                  "sellerUserId": {
+                    "type": "string",
+                    "description": "Optional: only consider listings from this seller"
+                  }
+                }
+              },
+              "example": {
+                "itemId": 5678,
+                "count": 5
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Added",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "cart": [
+                      {
+                        "cartId": 44,
+                        "assetId": "111,222,333",
+                        "count": 3,
+                        "item_id": 5678,
+                        "price": 14000
+                      }
+                    ]
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "300": {
+            "$ref": "#/components/responses/BusinessError"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/cart/remove": {
+      "post": {
+        "operationId": "removeFromCart",
+        "tags": [
+          "Cart"
+        ],
+        "summary": "Remove from cart",
+        "description": "Removes one cart row (and all its asset IDs) from the cart.\n\n**Permission:** Connected + API.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "cartId"
+                ],
+                "properties": {
+                  "cartId": {
+                    "type": "integer",
+                    "description": "Cart row ID (from get cart response)"
+                  }
+                }
+              },
+              "example": {
+                "cartId": 42
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Removed",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "cart": []
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "300": {
+            "$ref": "#/components/responses/BusinessError"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/cart/update": {
+      "post": {
+        "operationId": "updateCart",
+        "tags": [
+          "Cart"
+        ],
+        "summary": "Update cart (integrity + replace)",
+        "description": "Runs cart integrity checks and optionally fixes the cart: verifies each item still exists, is for sale, and has the same price; replaces invalid plain items with equivalent listings at the same price; deletes empty rows. Use before checkout.\n\n**Permission:** Connected + API.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "integrity": {
+                      "valid": false,
+                      "invalidItems": [
+                        {
+                          "cartId": 42,
+                          "assetId": "987654321",
+                          "reason": "price_changed",
+                          "currentPrice": 16000,
+                          "expectedPrice": 15000
+                        }
+                      ]
+                    },
+                    "replaced": [
+                      {
+                        "cartId": 42,
+                        "oldAssetId": "987654321",
+                        "newAssetId": "987654999",
+                        "reason": "price_changed"
+                      }
+                    ],
+                    "removed": [],
+                    "cart": [
+                      {
+                        "cartId": 42,
+                        "assetId": "987654999",
+                        "count": 1,
+                        "item_id": 5678,
+                        "price": 15000
+                      }
+                    ]
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "300": {
+            "$ref": "#/components/responses/BusinessError"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/deposit/{game}": {
+      "get": {
+        "operationId": "getDepositInformation",
+        "x-mint": {
+          "href": "/api-reference/listing/get-deposit-information"
+        },
+        "tags": [
+          "Listing"
+        ],
+        "summary": "Get deposit information",
+        "description": "Returns your Steam inventory for that game with `depositkey` maps per asset id, pricing hints, and optional high-stock fields. Each depositkey is validated server-side when submitting POST /deposit/trade.\n\n**Permission:** Connected + API.",
+        "parameters": [
+          {
+            "name": "game",
+            "in": "path",
+            "required": true,
+            "description": "Game id: 440, 730, 570, 252490, 753",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deposit inventory",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "informations": [
+                      {
+                        "assetid": "123456789;987654321",
+                        "count": 2,
+                        "market_hash_name": "Unusual Burning Flames Team Captain",
+                        "item_id": 5678,
+                        "depositkey": {
+                          "123456789": "a1b2c3d4e5f6..."
+                        }
+                      }
+                    ]
+                  }
+                },
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "content": {
+                          "type": "object",
+                          "properties": {
+                            "informations": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/DepositRow"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/deposit/trade": {
+      "post": {
+        "operationId": "createDepositTrade",
+        "tags": [
+          "Listing"
+        ],
+        "summary": "Create deposit trade",
+        "description": "Submits deposit prices and keys to create a trade. Use `content.id` as the tradeid for GET /deposit/tradeStatus/{tradeid}.\n\n**Permission:** Connected + API.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "prices",
+                  "depositKeys"
+                ],
+                "properties": {
+                  "prices": {
+                    "type": "object",
+                    "description": "Map assetId string to price in cents",
+                    "additionalProperties": {
+                      "type": "integer"
+                    }
+                  },
+                  "depositKeys": {
+                    "type": "object",
+                    "description": "Map assetId to the depositkey from GET /deposit/{game}",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "game": {
+                    "type": "integer",
+                    "description": "Default 440. One of 440, 730, 570, 252490, 753",
+                    "default": 440
+                  }
+                }
+              },
+              "example": {
+                "prices": {
+                  "123456789": 15000,
+                  "987654321": 8000
+                },
+                "depositKeys": {
+                  "123456789": "...",
+                  "987654321": "..."
+                },
+                "game": 440
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Trade created",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "id": 42
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "300": {
+            "$ref": "#/components/responses/BusinessError"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/deposit/instantSell/{game}": {
+      "get": {
+        "operationId": "getInstantSellInformation",
+        "tags": [
+          "Listing"
+        ],
+        "summary": "Instant sell (information)",
+        "description": "Returns enriched inventory data for instant-sell pricing, built from cached deposit lists and buy-order tiers.\n\n**Permission:** Connected + API.",
+        "parameters": [
+          {
+            "name": "game",
+            "in": "path",
+            "required": true,
+            "description": "Game id: 753, 440, or 252490",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Instant sell inventory",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "informations": []
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/deposit/trade/instant": {
+      "post": {
+        "operationId": "createInstantSellTrade",
+        "tags": [
+          "Listing"
+        ],
+        "summary": "Create instant sell trade",
+        "description": "Same general idea as POST /deposit/trade, plus a cashout method. Supported games: 753, 440, 252490. Requires prices and depositKeys as objects.\n\n**Permission:** Connected + API (2FA satisfied automatically with API JWT).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "cashout_method",
+                  "prices",
+                  "depositKeys"
+                ],
+                "properties": {
+                  "cashout_method": {
+                    "type": "string",
+                    "description": "Instant sell payout method (server-defined values)"
+                  },
+                  "prices": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "integer"
+                    }
+                  },
+                  "depositKeys": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "game": {
+                    "type": "integer",
+                    "description": "Default 440. One of 753, 440, 252490",
+                    "default": 440
+                  }
+                }
+              },
+              "example": {
+                "cashout_method": "paypal",
+                "prices": {
+                  "123456789": 15000
+                },
+                "depositKeys": {
+                  "123456789": "..."
+                },
+                "game": 440
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Instant sell trade created",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "id": 42
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "300": {
+            "$ref": "#/components/responses/BusinessError"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/deposit/tradeStatus/{tradeid}": {
+      "get": {
+        "operationId": "getTradeStatus",
+        "tags": [
+          "Listing"
+        ],
+        "summary": "Get trade status",
+        "description": "Returns the deposit row plus nested `trade` when available. Trade status: 0 = Pending, 3 = Completed, -1 = Failed.\n\n**Permission:** Connected + API.",
+        "parameters": [
+          {
+            "name": "tradeid",
+            "in": "path",
+            "required": true,
+            "description": "The id returned by POST /deposit/trade",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Trade status",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "trade": {
+                      "id": 123456,
+                      "items_received": "123456789,987654321",
+                      "status": 3,
+                      "game": 440
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/trades/active": {
+      "get": {
+        "operationId": "getActiveTrades",
+        "x-mint": {
+          "href": "/api-reference/trading/get-active-trades"
+        },
+        "tags": [
+          "Trading"
+        ],
+        "summary": "Get active trades",
+        "description": "Returns pending trades for the authenticated user (deposits not completed, withdrawals not finished).\n\n**Permission:** Connected + API.",
+        "responses": {
+          "200": {
+            "description": "Active trades",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "trades": [
+                      {
+                        "id": 123456,
+                        "items_received": "123456789,987654321",
+                        "status": 0,
+                        "bot": "76561198111111111",
+                        "offerid": "5678901234",
+                        "timestamp": "1706745600000"
+                      }
+                    ]
+                  }
+                },
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiError"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "content": {
+                          "type": "object",
+                          "properties": {
+                            "trades": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/Trade"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/trades/all": {
+      "get": {
+        "operationId": "getAllTrades",
+        "tags": [
+          "Trading"
+        ],
+        "summary": "Get all trades",
+        "description": "Returns up to the last 500 trades for the authenticated user, ordered by time descending. No query parameters.\n\n**Permission:** Connected + API.",
+        "responses": {
+          "200": {
+            "description": "All trades",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "trades": [
+                      {
+                        "id": 123456,
+                        "status": 3,
+                        "game": 440
+                      }
+                    ]
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/trade/resend": {
+      "get": {
+        "operationId": "resendTrade",
+        "tags": [
+          "Trading"
+        ],
+        "summary": "Resend trade",
+        "description": "Retries sending a trade that meets server conditions. The query parameter name is `id`, not `resend`.\n\n**Permission:** Connected + API.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "description": "Internal trade id from GET /trades/active or GET /trades/all",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Trade resent",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "message": "Trade resent successfully",
+                    "trade_id": 123456,
+                    "code": "ABCDEFGH"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/user/disconnect": {
+      "get": {
+        "operationId": "disconnect",
+        "tags": [
+          "User Account"
+        ],
+        "summary": "Disconnect",
+        "description": "Invalidates the current session / token.\n\n**Permission:** Connected + API.",
+        "responses": {
+          "200": {
+            "description": "Disconnected",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "disconnect": true
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/user/infos": {
+      "get": {
+        "operationId": "getUserInfos",
+        "x-mint": {
+          "href": "/api-reference/user-account/get-user-information"
+        },
+        "tags": [
+          "User Account"
+        ],
+        "summary": "Get user information",
+        "description": "Returns account fields such as steamId, balance (cents), tradeurl, name, image, 2fa, shorturl, and notification.\n\n**Permission:** Connected + API.",
+        "responses": {
+          "200": {
+            "description": "User info",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "informations": {
+                      "steamId": "76561198000000000",
+                      "balance": 250000,
+                      "name": "PlayerName",
+                      "2fa": "true"
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/user/balance": {
+      "get": {
+        "operationId": "getBalance",
+        "tags": [
+          "User Account"
+        ],
+        "summary": "Get balance",
+        "description": "Returns the current account balance in cents.\n\n**Permission:** Connected + API.",
+        "responses": {
+          "200": {
+            "description": "Balance",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "balance": 250000
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/user/notifications": {
+      "get": {
+        "operationId": "getNotifications",
+        "tags": [
+          "User Account"
+        ],
+        "summary": "Notifications",
+        "description": "Returns aggregated unread data (alerts, payment reviews, messages, offers, trades).\n\n**Permission:** Connected + API.",
+        "responses": {
+          "200": {
+            "description": "Notifications",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "alertCount": 0,
+                    "messagesCount": 0,
+                    "offersCount": 0,
+                    "tradesCount": 0
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/user/ipList": {
+      "get": {
+        "operationId": "getIpList",
+        "tags": [
+          "User Account"
+        ],
+        "summary": "IP / session list",
+        "description": "Returns session rows (ip, location, isp, current, timestamps) and a total count.\n\n**Permission:** Connected + API.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageParam"
+          },
+          {
+            "$ref": "#/components/parameters/PerPageParam"
+          },
+          {
+            "name": "expire",
+            "in": "query",
+            "description": "Pass 'true' to include expired sessions",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sessions",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "values": [],
+                    "count": 0
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/user/store/{identifier}": {
+      "get": {
+        "operationId": "getPublicStoreProfile",
+        "tags": [
+          "User Account"
+        ],
+        "summary": "Public store profile",
+        "description": "Returns minimal public info (steamId, image, name) for a store, or an error if not found.\n\n**Permission:** API route filter only (no Bearer required).",
+        "security": [],
+        "parameters": [
+          {
+            "name": "identifier",
+            "in": "path",
+            "required": true,
+            "description": "Store short URL / identifier",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Store profile",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "steamId": "76561198000000000",
+                    "name": "PlayerName",
+                    "image": "https://..."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/user/getSalesInfos": {
+      "get": {
+        "operationId": "getSalesStats",
+        "tags": [
+          "User Account"
+        ],
+        "summary": "Sales stats",
+        "description": "Summary sales metrics for the authenticated user.\n\n**Permission:** Connected + API.",
+        "responses": {
+          "200": {
+            "description": "Sales stats",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {}
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/user/getSalesChartInfos": {
+      "get": {
+        "operationId": "getSalesChart",
+        "tags": [
+          "User Account"
+        ],
+        "summary": "Sales chart",
+        "description": "Chart-oriented sales data.\n\n**Permission:** Connected + API.",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "description": "Optional time period",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "chart",
+            "in": "query",
+            "description": "Chart-specific response toggle",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sales chart",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {}
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/user/getBalanceHistory": {
+      "get": {
+        "operationId": "getBalanceHistory",
+        "tags": [
+          "User Account"
+        ],
+        "summary": "Balance history",
+        "description": "Paginated balance changes. First page (page = 0) returns values and count; later pages may return only values.\n\n**Permission:** Connected + API.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageParam"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Page size (max 50)",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Balance history",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "values": [],
+                    "count": 0
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/user/getPurchaseHistory": {
+      "get": {
+        "operationId": "getPurchaseHistory",
+        "tags": [
+          "User Account"
+        ],
+        "summary": "Purchase history",
+        "description": "Paginated purchase records.\n\n**Permission:** Connected + API.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageParam"
+          },
+          {
+            "$ref": "#/components/parameters/CountParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Purchase history",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "values": []
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/user/getSalesHistory": {
+      "get": {
+        "operationId": "getSalesHistory",
+        "tags": [
+          "User Account"
+        ],
+        "summary": "Sales history",
+        "description": "Paginated sales records. An admin variant GET /user/getSalesHistory/{userid} (Connected + admin) returns another user's history.\n\n**Permission:** Connected + API.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageParam"
+          },
+          {
+            "$ref": "#/components/parameters/PerPageParam"
+          },
+          {
+            "name": "range",
+            "in": "query",
+            "description": "Time window: 1W, 1M, 1Y, or All",
+            "schema": {
+              "type": "string",
+              "default": "1W"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/SearchParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sales history",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "values": [],
+                    "count": 0
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/user/getCashoutHistory": {
+      "get": {
+        "operationId": "getCashoutHistory",
+        "tags": [
+          "User Account"
+        ],
+        "summary": "Cashout history",
+        "description": "Paginated cashout records. Supports page and one of count, perpage, or limit for page size (max 50).\n\n**Permission:** Connected + API.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageParam"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Page size (max 50)",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cashout history",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "values": []
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/user/getTransactionHistory": {
+      "get": {
+        "operationId": "getTransactionHistory",
+        "tags": [
+          "User Account"
+        ],
+        "summary": "Transaction history",
+        "description": "Paginated transaction records.\n\n**Permission:** Connected + API.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageParam"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Page size (max 50)",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/SearchParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transaction history",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "values": []
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/user/getTransactionDetails": {
+      "get": {
+        "operationId": "getTransactionDetails",
+        "tags": [
+          "User Account"
+        ],
+        "summary": "Transaction details",
+        "description": "Returns the detail payload for a transaction, or an error if not found / access denied.\n\n**Permission:** Connected + API.",
+        "parameters": [
+          {
+            "name": "transactionId",
+            "in": "query",
+            "required": true,
+            "description": "Transaction identifier",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transaction details",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "transaction": {}
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiError": {
+        "type": "object",
+        "description": "Standard Mannco.store response envelope. `err` and `success` flag the outcome; the payload (or error message) is always under `content`.",
+        "required": [
+          "err",
+          "success"
+        ],
+        "properties": {
+          "err": {
+            "type": "boolean",
+            "description": "True when the request failed."
+          },
+          "success": {
+            "type": "boolean",
+            "description": "True when the request succeeded."
+          },
+          "content": {
+            "description": "Payload on success, or an error message/object on failure."
+          }
+        }
+      },
+      "Item": {
+        "type": "object",
+        "description": "Catalog item details.",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "quality": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "rarity": {
+            "type": "string"
+          },
+          "game": {
+            "type": "integer",
+            "description": "Game App ID (440, 730, 570, 252490, 753)."
+          },
+          "url": {
+            "type": "string",
+            "description": "URL slug."
+          }
+        }
+      },
+      "Listing": {
+        "type": "object",
+        "description": "An item listed for sale.",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "assetId": {
+            "type": "string",
+            "description": "Steam asset ID."
+          },
+          "item_id": {
+            "type": "integer"
+          },
+          "state": {
+            "type": "integer",
+            "description": "Inventory state (1 = listed for sale)."
+          },
+          "price": {
+            "type": "integer",
+            "description": "Price in cents."
+          },
+          "game": {
+            "type": "integer"
+          }
+        }
+      },
+      "Offer": {
+        "type": "object",
+        "description": "A trade offer between two users.",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "from": {
+            "type": "string",
+            "description": "Buyer SteamID64."
+          },
+          "to": {
+            "type": "string",
+            "description": "Seller SteamID64."
+          },
+          "status": {
+            "type": "integer",
+            "description": "Offer status code (see Offer status codes)."
+          },
+          "price": {
+            "type": "integer",
+            "description": "Offer price in cents."
+          }
+        }
+      },
+      "BuyOrder": {
+        "type": "object",
+        "description": "A standing buy order.",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "itemid": {
+            "type": "integer"
+          },
+          "price": {
+            "type": "integer",
+            "description": "Price per item in cents."
+          },
+          "amount": {
+            "type": "integer",
+            "description": "Quantity requested."
+          },
+          "name": {
+            "type": "string"
+          },
+          "game": {
+            "type": "integer"
+          }
+        }
+      },
+      "CartItem": {
+        "type": "object",
+        "description": "A cart row grouping one or more asset IDs of the same item at the same price.",
+        "properties": {
+          "cartId": {
+            "type": "integer"
+          },
+          "assetId": {
+            "type": "string",
+            "description": "Comma-separated Steam asset IDs."
+          },
+          "count": {
+            "type": "integer"
+          },
+          "item_id": {
+            "type": "integer"
+          },
+          "price": {
+            "type": "integer",
+            "description": "Price in cents."
+          },
+          "name": {
+            "type": "string"
+          },
+          "game": {
+            "type": "integer"
+          }
+        }
+      },
+      "Trade": {
+        "type": "object",
+        "description": "A Steam trade processed by the platform.",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "items_received": {
+            "type": "string",
+            "description": "Comma-separated asset IDs."
+          },
+          "status": {
+            "type": "integer",
+            "description": "Trade status (0 = Pending, 3 = Completed, -1 = Failed)."
+          },
+          "bot": {
+            "type": "string",
+            "description": "Bot SteamID64."
+          },
+          "offerid": {
+            "type": "string",
+            "description": "Steam trade offer ID."
+          },
+          "timestamp": {
+            "type": "string"
+          },
+          "game": {
+            "type": "integer"
+          }
+        }
+      },
+      "DepositRow": {
+        "type": "object",
+        "description": "A depositable inventory entry with its server-issued deposit key(s).",
+        "properties": {
+          "assetid": {
+            "type": "string",
+            "description": "Semicolon-separated Steam asset IDs."
+          },
+          "count": {
+            "type": "integer"
+          },
+          "market_hash_name": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "integer"
+          },
+          "depositkey": {
+            "type": "object",
+            "description": "Map of asset ID to its deposit key.",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "responses": {
+      "BusinessError": {
+        "description": "Business error. The request was understood but rejected by domain rules (HTTP 300).",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiError"
+            },
+            "example": {
+              "err": true,
+              "success": false,
+              "content": "Error message"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Forbidden. Missing/invalid JWT, blocked country, or insufficient permissions.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiError"
+            },
+            "example": {
+              "err": true,
+              "success": false,
+              "content": "forbidden"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "The requested resource was not found.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiError"
+            },
+            "example": {
+              "err": true,
+              "success": false,
+              "content": "Not found"
+            }
+          }
+        }
+      },
+      "RateLimited": {
+        "description": "Rate limit exceeded.",
+        "headers": {
+          "X-RateLimit-Limit": {
+            "description": "Request quota for the window.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          "X-RateLimit-Remaining": {
+            "description": "Remaining requests in the window.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          "X-RateLimit-Reset": {
+            "description": "Unix time when the window resets.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          "Retry-After": {
+            "description": "Seconds to wait before retrying.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiError"
+            },
+            "example": {
+              "err": true,
+              "success": false,
+              "content": "Rate limit exceeded. Retry after 60 seconds."
+            }
+          }
+        }
+      },
+      "ServerError": {
+        "description": "Internal server error.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiError"
+            },
+            "example": {
+              "err": true,
+              "success": false,
+              "content": "Internal server error"
+            }
+          }
+        }
+      }
+    },
+    "parameters": {
+      "ItemPathParam": {
+        "name": "item",
+        "in": "path",
+        "required": true,
+        "description": "Item identifier (numeric ID or URL slug).",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "GameQueryParam": {
+        "name": "game",
+        "in": "query",
+        "description": "Game ID filter: 440, 730, 570, 252490, or 753.",
+        "schema": {
+          "type": "integer"
+        }
+      },
+      "PageParam": {
+        "name": "page",
+        "in": "query",
+        "description": "Zero-based page number (offset = page x page size).",
+        "schema": {
+          "type": "integer",
+          "default": 0
+        }
+      },
+      "CountParam": {
+        "name": "count",
+        "in": "query",
+        "description": "Results per page.",
+        "schema": {
+          "type": "integer",
+          "default": 10
+        }
+      },
+      "PerPageParam": {
+        "name": "perPage",
+        "in": "query",
+        "description": "Page size (max 50).",
+        "schema": {
+          "type": "integer",
+          "default": 10
+        }
+      },
+      "SearchParam": {
+        "name": "search",
+        "in": "query",
+        "description": "Search filter (minimum 3 characters).",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT obtained from POST /user/login"
+      }
+    }
+  }
+}

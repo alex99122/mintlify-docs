@@ -1,0 +1,13 @@
+---
+title: "Item states"
+description: "Reference for inventory item states (sell/withdraw eligibility)"
+---
+
+Understanding item states in the inventory system:
+
+| State | Description | Can Sell? | Can Withdraw? |
+|-------|-------------|-----------|---------------|
+| 0 | In inventory | ✅ Yes | ✅ Yes |
+| 1 | On sale | ✅ Yes | ✅ Yes |
+| 2 | Pending withdrawal | ❌ No | ❌ No |
+| 3 | In active trade | ❌ No | ❌ No |

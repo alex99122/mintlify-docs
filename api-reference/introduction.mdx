@@ -13,11 +13,11 @@ https://api.mannco.store
 
 ## Authentication
 
-Programmatic access uses a **JWT** from your **API key** (created in your Mannco.store account). See [Authentication](/authentication) for `POST /user/login` and the `Authorization` header.
+Programmatic access uses a **JWT** from your **API key** (created in your Mannco.store account). See [Authentication](/api-reference/authentication) for `POST /user/login` and the `Authorization` header.
 
 - **Routes with `connected` + `api`**: send `Authorization: Bearer <jwt>` unless noted otherwise.
 - **`GET /user/store/{identifier}`** only requires the `api` route filter — no logged-in user.
-- **JWT lifetime** is about **31 days**; the payload includes `API: true` and a bound **client IP** (see [Authentication](/authentication)).
+- **JWT lifetime** is about **31 days**; the payload includes `API: true` and a bound **client IP** (see [Authentication](/api-reference/authentication)).
 
 ### Two-factor authentication (2FA)
 
@@ -47,19 +47,12 @@ Website-only flows (browser session, cashout routes without `api`, etc.) are out
 
 ### Endpoints by area
 
-| Area | Methods and paths |
-|------|-------------------|
-| **Login** | `POST /user/login` |
-| **Items** | `GET /item/details/{item}`, `GET /item/details/fromid/{backpackid}`, `GET /item/cs/details/fromid/{backpackid}`, `GET /item/salesGraph/{item}`, `GET /item/listing/count/{item}`, `GET /item/listing/count/{item}/{userid}`, `GET /item/listing/{item}`, `GET /item/listing/{item}/{userid}`, `GET /item/buyorderList/{item}`, `GET /item/prices`, `GET /item/pricing/bulk`, `GET /item/pricing/external`, `GET /item/pricing/{item}`, `POST /item/buyorder`, `POST /item/buyorder/update`, `POST /item/buyorder/remove` |
-| **Buy orders (user)** | `GET /user/buyorder/{item}`, `GET /user/getBuyorder` |
-| **Inventory** | `GET /inventory/onSale`, `GET /inventory/onInventory`, `POST /inventory/withdraw`, `POST /inventory/price` |
-| **Trades** | `GET /trades/active`, `GET /trades/all`, `GET /trade/resend` |
-| **Offers** | `GET /offers/received`, `GET /offers/my`, `POST /offers/create`, `POST /offers/decline`, `POST /offers/remove`, `POST /offers/accept` |
-| **Deposit** | `POST /deposit/trade`, `POST /deposit/trade/instant`, `GET /deposit/tradeStatus/{tradeid}`, `GET /deposit/instantSell/{game}`, `GET /deposit/{game}` |
-| **Cart** | `GET /cart/get`, `POST /cart/add`, `POST /cart/bulk`, `POST /cart/remove`, `POST /cart/update`, `POST /cart/clear` |
-| **Payment** | `POST /payment/{provider}` |
-| **User** | `GET /user/disconnect`, `GET /user/infos`, `GET /user/balance`, `GET /user/notifications`, `GET /user/store/{identifier}`, `GET /user/ipList`, `GET /user/getSalesInfos`, `GET /user/getSalesChartInfos`, `GET /user/getBalanceHistory`, `GET /user/getPurchaseHistory`, `GET /user/getSalesHistory`, `GET /user/getCashoutHistory`, `GET /user/getTransactionHistory`, `GET /user/getTransactionDetails`, `GET /user/getBuyorder` |
-| **Partner** | `POST /webhook/vendor/{provider}` |
+Every documented endpoint lives in the navigation tabs above, each with an interactive playground and code samples:
+
+- **Buyer** — Items, Offers, Buy Orders, Payment, Inventory, and Cart.
+- **Seller** — Listing (deposit and instant sell).
+- **Trading** — active trades, trade history, and resends.
+- **User Account** — profile, balance, sessions, and history.
 
 Admin-only variants (extra `{userid}` path segments) are not detailed here.
 

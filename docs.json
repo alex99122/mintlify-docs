@@ -20,70 +20,180 @@
     "decoration": "gradient"
   },
   "favicon": "/favicon.svg",
+  "api": {
+    "openapi": "openapi.json",
+    "playground": {
+      "display": "interactive"
+    },
+    "examples": {
+      "languages": ["curl", "python", "javascript"]
+    }
+  },
+  "contextual": {
+    "options": ["copy", "view", "download-spec"]
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Documentation",
+        "tab": "Getting Started",
+        "icon": "rocket",
+        "openapi": "openapi.json",
         "groups": [
           {
-            "group": "Getting Started",
+            "group": "Overview",
             "pages": [
               "index",
-              "api-reference/introduction",
-              "api-reference/authentication"
+              "api-reference/introduction"
             ]
           },
           {
-            "group": "🛒 Buyer - Purchasing",
+            "group": "Authentication",
             "pages": [
-              "api-reference/items",
-              "api-reference/offers",
-              "api-reference/buyorders",
-              "api-reference/payment"
+              "api-reference/authentication",
+              "POST /user/login"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Buyer",
+        "icon": "cart-shopping",
+        "openapi": "openapi.json",
+        "groups": [
+          {
+            "group": "Purchasing",
+            "pages": [
+              {
+                "group": "Items",
+                "pages": [
+                  "GET /item/details/{item}",
+                  "GET /item/salesGraph/{item}",
+                  "GET /item/listing/count/{item}",
+                  "GET /item/listing/{item}",
+                  "GET /item/buyorderList/{item}",
+                  "GET /item/prices",
+                  "GET /item/pricing/{item}",
+                  "GET /item/pricing/bulk",
+                  "GET /item/details/fromid/{backpackid}",
+                  "GET /item/cs/details/fromid/{backpackid}"
+                ]
+              },
+              {
+                "group": "Offers",
+                "pages": [
+                  "api-reference/offers/status-codes",
+                  "GET /offers/received",
+                  "GET /offers/my",
+                  "POST /offers/create",
+                  "POST /offers/accept",
+                  "POST /offers/decline",
+                  "POST /offers/remove"
+                ]
+              },
+              {
+                "group": "Buy Orders",
+                "pages": [
+                  "POST /item/buyorder",
+                  "POST /item/buyorder/update",
+                  "POST /item/buyorder/remove",
+                  "GET /user/buyorder/{item}",
+                  "GET /user/getBuyorder"
+                ]
+              },
+              "POST /payment/{provider}"
             ]
           },
           {
-            "group": "🛒 Buyer - Inventory",
+            "group": "Cart",
             "pages": [
-              "api-reference/inventory"
+              "GET /cart/get",
+              "POST /cart/add",
+              "POST /cart/bulk",
+              "POST /cart/remove",
+              "POST /cart/update"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Seller",
+        "icon": "tag",
+        "openapi": "openapi.json",
+        "groups": [
+          {
+            "group": "Listing",
+            "pages": [
+              "GET /deposit/{game}",
+              "POST /deposit/trade",
+              "GET /deposit/instantSell/{game}",
+              "POST /deposit/trade/instant",
+              "GET /deposit/tradeStatus/{tradeid}"
             ]
           },
           {
-            "group": "🛒 Buyer - Cart",
+            "group": "Inventory",
             "pages": [
-              "api-reference/cart"
+              "GET /inventory/onSale",
+              "GET /inventory/onInventory",
+              "POST /inventory/price",
+              "POST /inventory/withdraw",
+              "api-reference/inventory/item-states"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Trading",
+        "icon": "arrows-rotate",
+        "openapi": "openapi.json",
+        "groups": [
+          {
+            "group": "Trades",
+            "pages": [
+              "GET /trades/active",
+              "GET /trades/all",
+              "GET /trade/resend"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "User Account",
+        "icon": "user",
+        "openapi": "openapi.json",
+        "groups": [
+          {
+            "group": "Account",
+            "pages": [
+              "GET /user/infos",
+              "GET /user/balance",
+              "GET /user/notifications",
+              "GET /user/ipList",
+              "GET /user/store/{identifier}",
+              "GET /user/disconnect"
             ]
           },
           {
-            "group": "💰 Seller - Listing",
+            "group": "Sales & Stats",
             "pages": [
-              "api-reference/deposit"
+              "GET /user/getSalesInfos",
+              "GET /user/getSalesChartInfos"
             ]
           },
           {
-            "group": "🔄 Trading",
+            "group": "History",
             "pages": [
-              "api-reference/trades"
-            ]
-          },
-          {
-            "group": "👤 User Account",
-            "pages": [
-              "api-reference/user"
+              "GET /user/getBalanceHistory",
+              "GET /user/getPurchaseHistory",
+              "GET /user/getSalesHistory",
+              "GET /user/getCashoutHistory",
+              "GET /user/getTransactionHistory",
+              "GET /user/getTransactionDetails"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Website",
-          "href": "https://mannco.store",
-          "icon": "globe"
-        }
-      ]
-    }
+    ]
   },
   "logo": {
     "light": "/logo/light.svg",
