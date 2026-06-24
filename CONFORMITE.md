@@ -21,6 +21,7 @@ Tous les endpoints documentés ont le filtre `'api'` dans leur déclaration dans
 | GET /item/listing/{item} | 19-20 | array('api') | items.mdx |
 | GET /item/getRaffleItems | 21 | array('connected','api') | items.mdx |
 | GET /item/buyorderList/{item} | 23 | array('api') | items.mdx |
+| GET /item/prices | — | array('connected','api') | items.mdx |
 | GET /item/pricing/bulk | 24 | array('connected','api') | items.mdx |
 | GET /item/pricing/{item} | 25 | array('connected','api') | items.mdx |
 | GET /inventory/onSale | 30 | array('connected','api') | inventory.mdx |

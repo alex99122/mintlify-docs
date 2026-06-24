@@ -3,7 +3,7 @@
 ## Authentication
 - [x] POST /user/login (API Key authentication) - EXCEPTION (ligne 87: array())
 
-## Items (10 endpoints)
+## Items (13 endpoints)
 - [x] GET /item/details/{item} - ligne 14: array('api')
 - [x] GET /item/salesGraph/{item} - ligne 16: array('connected','api')
 - [x] GET /item/listing/count/{item} - ligne 17: array('api')
@@ -11,6 +11,7 @@
 - [x] GET /item/listing/{item} - ligne 19: array('api')
 - [x] GET /item/listing/{item}/{userid} - ligne 20: array('api')
 - [x] GET /item/buyorderList/{item} - ligne 23: array('api')
+- [x] GET /item/prices - array('connected','api')
 - [x] GET /item/pricing/{item} - ligne 25: array('connected','api')
 - [x] GET /item/pricing/bulk - ligne 24: array('connected','api')
 - [x] GET /item/details/fromid/{backpackid} - ligne 53: array('api')

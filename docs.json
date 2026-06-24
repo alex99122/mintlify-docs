@@ -2,7 +2,7 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
   "name": "Mannco.store API",
-  "description": "Complete API documentation for Mannco.store - Buy and sell TF2, CS:GO, Dota 2 and Rust skins on the cheapest secured marketplace.",
+  "description": "Complete API documentation for Mannco.store - Buy and sell TF2, CS:GO, Dota 2, Rust and Steam community items on the cheapest secured marketplace.",
   "colors": {
     "primary": "#29CCE0",
     "light": "#29CCE0",

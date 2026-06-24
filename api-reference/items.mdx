@@ -78,7 +78,7 @@ Returns full item details from the `items` table. You can pass either a numeric 
 | `deal` | integer | Steam market price in cents |
 | `t` | any/null | Additional data |
 | `color` | string | Hex color code for rarity |
-| `game` | integer | Game App ID (`440`, `730`, `570`, `252490`) |
+| `game` | integer | Game App ID (`440`, `730`, `570`, `252490`, `753`) |
 | `slot` | string | Equipment slot (TF2) |
 | `hero` | string/null | Hero name (Dota 2) |
 | `weapon` | string | Weapon name (CS:GO/CS2) |
@@ -251,7 +251,7 @@ GET /item/listing/{item}/{userid}
 </ParamField>
 
 <ParamField query="game" type="integer">
-  Game ID filter (`440` for TF2, `730` for CS2). Affects which extra info is joined.
+  Game ID filter: `440` (TF2), `730` (CS2), `570` (Dota 2), `252490` (Rust), or `753` (Steam). Affects which extra info is joined.
 </ParamField>
 
 Returns paginated listings sorted by price ascending. The number of items per page is capped by the server configuration (`maxCount.itemListing`). Each listing includes backpack details. For non-admin callers, `user` and `ip` are omitted from each listing.
@@ -316,6 +316,74 @@ Returns active buy orders for an item, grouped by price tier. Up to 5 price tier
 | `informations[n].count` | integer | Total quantity at this price |
 | `informations[n].price` | integer | Buy order price in cents |
 | `informations.more` | object | Aggregated count and lowest price for remaining tiers |
+
+---
+
+## Get item prices by game
+
+```
+GET /item/prices
+```
+
+**Permission:** Connected + API
+
+<ParamField query="game" type="integer" required>
+  Game App ID: `440` (TF2), `730` (CS2), `570` (Dota 2), `252490` (Rust), or `753` (Steam)
+</ParamField>
+
+<ParamField query="outofstock" type="integer">
+  Include items with no stock: `0` = in-stock only, `1` = include out-of-stock items
+</ParamField>
+
+Returns a list of items for the given game with name, craftable flag, effect, URL slug, in-stock asset count, and lowest sale price.
+
+<Note>
+  **Rate limit:** **1 request per 5 minutes** per API key for this endpoint. Exceeding the limit returns HTTP `429` with standard rate-limit headers.
+</Note>
+
+### Response
+
+```json
+{
+  "err": false,
+  "success": true,
+  "content": [
+    {
+      "name": "The Scottish Handshake",
+      "craftable": 1,
+      "effect": "",
+      "url": "440-the-scottish-handshake",
+      "assetcount": 809,
+      "price": 1
+    },
+    {
+      "name": "The Amputator",
+      "craftable": 1,
+      "effect": "",
+      "url": "440-the-amputator",
+      "assetcount": 48,
+      "price": 1
+    }
+  ]
+}
+```
+
+### Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | string | Item display name |
+| `craftable` | integer | `1` = craftable, `0` = uncraftable |
+| `effect` | string | Unusual effect name (TF2) or empty |
+| `url` | string | URL slug (`{game}-{slugified-name}`) |
+| `assetcount` | integer | Number of listed assets in stock |
+| `price` | integer | Lowest sale price in cents |
+
+### Example
+
+```
+GET /item/prices?game=440&outofstock=0
+```
 
 ---
 
@@ -500,7 +568,7 @@ Both endpoints return combined data from `backpack`, `items`, and `item_infos` t
       "price": "integer (cents) or null",
       "state": "integer (0=inventory, 1=on sale, 2=withdrawal)",
       "bot": "string (bot Steam ID)",
-      "game": "integer (440/730/570/252490)",
+      "game": "integer (440/730/570/252490/753)",
       "wear": "float or null (CS2 items)",
       "sheen": "string (TF2 killstreak)",
       "killstreaker": "string (TF2 killstreak)",

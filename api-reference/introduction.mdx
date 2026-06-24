@@ -50,7 +50,7 @@ Website-only flows (browser session, cashout routes without `api`, etc.) are out
 | Area | Methods and paths |
 |------|-------------------|
 | **Login** | `POST /user/login` |
-| **Items** | `GET /item/details/{item}`, `GET /item/details/fromid/{backpackid}`, `GET /item/cs/details/fromid/{backpackid}`, `GET /item/salesGraph/{item}`, `GET /item/listing/count/{item}`, `GET /item/listing/count/{item}/{userid}`, `GET /item/listing/{item}`, `GET /item/listing/{item}/{userid}`, `GET /item/buyorderList/{item}`, `GET /item/pricing/bulk`, `GET /item/pricing/external`, `GET /item/pricing/{item}`, `POST /item/buyorder`, `POST /item/buyorder/update`, `POST /item/buyorder/remove` |
+| **Items** | `GET /item/details/{item}`, `GET /item/details/fromid/{backpackid}`, `GET /item/cs/details/fromid/{backpackid}`, `GET /item/salesGraph/{item}`, `GET /item/listing/count/{item}`, `GET /item/listing/count/{item}/{userid}`, `GET /item/listing/{item}`, `GET /item/listing/{item}/{userid}`, `GET /item/buyorderList/{item}`, `GET /item/prices`, `GET /item/pricing/bulk`, `GET /item/pricing/external`, `GET /item/pricing/{item}`, `POST /item/buyorder`, `POST /item/buyorder/update`, `POST /item/buyorder/remove` |
 | **Buy orders (user)** | `GET /user/buyorder/{item}`, `GET /user/getBuyorder` |
 | **Inventory** | `GET /inventory/onSale`, `GET /inventory/onInventory`, `POST /inventory/withdraw`, `POST /inventory/price` |
 | **Trades** | `GET /trades/active`, `GET /trades/all`, `GET /trade/resend` |
@@ -122,6 +122,7 @@ Monetary amounts are **integer cents** (e.g. `150` = $1.50 where applicable).
 | Counter-Strike 2 | `730` |
 | Dota 2 | `570` |
 | Rust | `252490` |
+| Steam | `753` |
 
 ### Backpack / listing states
 

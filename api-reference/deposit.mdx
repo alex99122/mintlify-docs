@@ -18,7 +18,7 @@ GET /deposit/{game}
 **Permission:** Connected + API
 
 <ParamField path="game" type="integer" required>
-  Game id: `440` (TF2), `730` (CS2), `570` (Dota 2), `252490` (Rust).
+  Game id: `440` (TF2), `730` (CS2), `570` (Dota 2), `252490` (Rust), `753` (Steam).
 </ParamField>
 
 Returns your Steam inventory for that game with **`depositkey`** maps per asset id, pricing hints, and optional `disabled` / high-stock fields. The response uses `content.informations` as an array of rows.
@@ -49,7 +49,7 @@ Returns your Steam inventory for that game with **`depositkey`** maps per asset 
 }
 ```
 
-TF2 / CS2 / Dota / Rust may add game-specific fields (`unusual`, `wear`, `stickers`, etc.). See existing **Items** docs for field meanings.
+TF2 / CS2 / Dota / Rust / Steam may add game-specific fields (`unusual`, `wear`, `stickers`, etc.). See existing **Items** docs for field meanings.
 
 <Info>
   Each `depositkey[assetId]` is validated server-side with `hash('sha256', depositSecret + assetId + user)` when you submit **POST /deposit/trade**.
@@ -76,7 +76,7 @@ POST /deposit/trade
 </ParamField>
 
 <ParamField body="game" type="integer">
-  Default `440`. Must be one of `440`, `730`, `570`, `252490`.
+  Default `440`. Must be one of `440`, `730`, `570`, `252490`, `753`.
 </ParamField>
 
 ### Example
@@ -125,7 +125,7 @@ GET /deposit/instantSell/{game}
 **Permission:** Connected + API
 
 <ParamField path="game" type="integer" required>
-  Currently **440** (TF2) only in server implementation.
+  Game id: `753` (Steam), `440` (TF2), or `252490` (Rust).
 </ParamField>
 
 Returns enriched inventory data for instant-sell pricing (`content.informations`), built from cached deposit lists and buy-order tiers.
@@ -146,7 +146,11 @@ Same general idea as **POST /deposit/trade**, plus:
   Instant sell payout method (server-defined values).
 </ParamField>
 
-**Supported games:** TF2 (`440`) only in code.
+<ParamField body="game" type="integer">
+  Default `440`. Must be one of `753`, `440`, `252490`.
+</ParamField>
+
+**Supported games:** `753` (Steam), `440` (TF2), `252490` (Rust).
 
 Also requires `prices` and `depositKeys` as objects (or JSON strings). Errors mirror validation in `createTradeInstant.php` (`missing prices parameter`, `instant sell is not supported for this game`, etc.).
 
