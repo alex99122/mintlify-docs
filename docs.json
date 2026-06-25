@@ -192,6 +192,18 @@
             ]
           }
         ]
+      },
+      {
+        "tab": "WebSocket",
+        "icon": "tower-broadcast",
+        "groups": [
+          {
+            "group": "Realtime",
+            "pages": [
+              "api-reference/websocket/market-stream"
+            ]
+          }
+        ]
       }
     ]
   },

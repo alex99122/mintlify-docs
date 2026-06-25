@@ -1,0 +1,35 @@
+/*
+ * Custom styling for the WebSocket (AsyncAPI) playground.
+ * Scoped to the WebSocket pages via the page path so the rest of the site is untouched.
+ */
+
+/* The generated Messages panel uses Tailwind's `overflow-scroll`, which keeps a
+   scrollbar track visible even when nothing overflows. Switch it to on-demand. */
+html[data-current-path^="/api-reference/websocket"] .overflow-scroll {
+  overflow: auto !important;
+}
+
+/* Thinner, subtler scrollbars on the playground panels for a cleaner look. */
+html[data-current-path^="/api-reference/websocket"] .overflow-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+html[data-current-path^="/api-reference/websocket"] .overflow-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+html[data-current-path^="/api-reference/websocket"] .overflow-scroll::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.28);
+  border-radius: 9999px;
+}
+
+html[data-current-path^="/api-reference/websocket"] .overflow-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
+}
+
+/* Firefox */
+html[data-current-path^="/api-reference/websocket"] .overflow-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.28) transparent;
+}

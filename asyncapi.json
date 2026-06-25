@@ -1,0 +1,224 @@
+{
+  "asyncapi": "3.0.0",
+  "info": {
+    "title": "Mannco.store Realtime API",
+    "version": "1.0.0",
+    "description": "Real-time market event stream for Mannco.store. Connect to the WebSocket and the server broadcasts live listing and price events as they happen. The stream is receive-only: clients do not send messages, they only consume the broadcast events.\n\nEvery message shares the same envelope `{ event, ts, data }`, where `event` is the event name, `ts` is the Unix timestamp in seconds, and `data` holds the event payload. All monetary amounts are integer cents (for example `1525` = $15.25)."
+  },
+  "servers": {
+    "production": {
+      "host": "api.mannco.store",
+      "pathname": "/ws",
+      "protocol": "wss",
+      "description": "Production WebSocket endpoint (wss://api.mannco.store/ws)."
+    }
+  },
+  "channels": {
+    "marketStream": {
+      "address": "/ws",
+      "title": "Market stream",
+      "description": "Live stream of market events: price changes, new listings, and removed listings.",
+      "servers": [
+        { "$ref": "#/servers/production" }
+      ],
+      "messages": {
+        "priceChanged": { "$ref": "#/components/messages/priceChanged" },
+        "listingAdded": { "$ref": "#/components/messages/listingAdded" },
+        "listingRemoved": { "$ref": "#/components/messages/listingRemoved" }
+      }
+    }
+  },
+  "operations": {
+    "receiveMarketEvents": {
+      "action": "receive",
+      "title": "Receive market events",
+      "summary": "Receive live market events broadcast by the server.",
+      "channel": { "$ref": "#/channels/marketStream" },
+      "messages": [
+        { "$ref": "#/channels/marketStream/messages/priceChanged" },
+        { "$ref": "#/channels/marketStream/messages/listingAdded" },
+        { "$ref": "#/channels/marketStream/messages/listingRemoved" }
+      ]
+    }
+  },
+  "components": {
+    "messages": {
+      "priceChanged": {
+        "name": "price_changed",
+        "title": "Price changed",
+        "summary": "A listing's price was updated.",
+        "contentType": "application/json",
+        "payload": { "$ref": "#/components/schemas/PriceChanged" }
+      },
+      "listingAdded": {
+        "name": "listing_added",
+        "title": "Listing added",
+        "summary": "A new listing was added to the market.",
+        "contentType": "application/json",
+        "payload": { "$ref": "#/components/schemas/ListingAdded" }
+      },
+      "listingRemoved": {
+        "name": "listing_removed",
+        "title": "Listing removed",
+        "summary": "A listing was removed from the market.",
+        "contentType": "application/json",
+        "payload": { "$ref": "#/components/schemas/ListingRemoved" }
+      }
+    },
+    "schemas": {
+      "PriceChanged": {
+        "type": "object",
+        "description": "Emitted when the price of an existing listing changes.",
+        "required": ["event", "ts", "data"],
+        "properties": {
+          "event": {
+            "type": "string",
+            "const": "price_changed",
+            "description": "Event name."
+          },
+          "ts": {
+            "type": "integer",
+            "description": "Unix timestamp (seconds) of the event.",
+            "examples": [1782403724]
+          },
+          "data": {
+            "type": "object",
+            "required": ["id", "assetId", "itemId", "oldPrice", "newPrice"],
+            "properties": {
+              "id": {
+                "type": "integer",
+                "description": "Listing id.",
+                "examples": [57322926]
+              },
+              "assetId": {
+                "type": "string",
+                "description": "Steam asset id of the listed item.",
+                "examples": ["17188460072"]
+              },
+              "itemId": {
+                "type": "integer",
+                "description": "Catalog item id.",
+                "examples": [1536]
+              },
+              "oldPrice": {
+                "type": "integer",
+                "description": "Previous price in integer cents.",
+                "examples": [1527]
+              },
+              "newPrice": {
+                "type": "integer",
+                "description": "New price in integer cents.",
+                "examples": [1525]
+              }
+            }
+          }
+        },
+        "examples": [
+          {
+            "event": "price_changed",
+            "ts": 1782403724,
+            "data": {
+              "id": 57322926,
+              "assetId": "17188460072",
+              "itemId": 1536,
+              "oldPrice": 1527,
+              "newPrice": 1525
+            }
+          }
+        ]
+      },
+      "ListingAdded": {
+        "type": "object",
+        "description": "Emitted when a new listing is added to the market.",
+        "required": ["event", "ts", "data"],
+        "properties": {
+          "event": {
+            "type": "string",
+            "const": "listing_added",
+            "description": "Event name."
+          },
+          "ts": {
+            "type": "integer",
+            "description": "Unix timestamp (seconds) of the event.",
+            "examples": [1782403704]
+          },
+          "data": {
+            "type": "object",
+            "required": ["id", "assetId", "itemId", "price"],
+            "properties": {
+              "id": {
+                "type": "integer",
+                "description": "Listing id.",
+                "examples": [57348505]
+              },
+              "assetId": {
+                "type": "string",
+                "description": "Steam asset id of the listed item.",
+                "examples": ["17190178976"]
+              },
+              "itemId": {
+                "type": "integer",
+                "description": "Catalog item id.",
+                "examples": [16145]
+              },
+              "price": {
+                "type": "integer",
+                "description": "Listing price in integer cents.",
+                "examples": [61]
+              }
+            }
+          }
+        },
+        "examples": [
+          {
+            "event": "listing_added",
+            "ts": 1782403704,
+            "data": {
+              "id": 57348505,
+              "assetId": "17190178976",
+              "itemId": 16145,
+              "price": 61
+            }
+          }
+        ]
+      },
+      "ListingRemoved": {
+        "type": "object",
+        "description": "Emitted when a listing is removed from the market.",
+        "required": ["event", "ts", "data"],
+        "properties": {
+          "event": {
+            "type": "string",
+            "const": "listing_removed",
+            "description": "Event name."
+          },
+          "ts": {
+            "type": "integer",
+            "description": "Unix timestamp (seconds) of the event.",
+            "examples": [1782403724]
+          },
+          "data": {
+            "type": "object",
+            "required": ["id"],
+            "properties": {
+              "id": {
+                "type": "integer",
+                "description": "Listing id that was removed.",
+                "examples": [57348505]
+              }
+            }
+          }
+        },
+        "examples": [
+          {
+            "event": "listing_removed",
+            "ts": 1782403724,
+            "data": {
+              "id": 57348505
+            }
+          }
+        ]
+      }
+    }
+  }
+}
