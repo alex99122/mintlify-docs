@@ -3,7 +3,7 @@
   "info": {
     "title": "Mannco.store Realtime API",
     "version": "1.0.0",
-    "description": "Real-time market event stream for Mannco.store. Connect to the WebSocket and the server broadcasts live listing and price events as they happen. The stream is receive-only: clients do not send messages, they only consume the broadcast events.\n\nEvery message shares the same envelope `{ event, ts, data }`, where `event` is the event name, `ts` is the Unix timestamp in seconds, and `data` holds the event payload. All monetary amounts are integer cents (for example `1525` = $15.25)."
+    "description": "Real-time market event stream for Mannco.store. Connect to the WebSocket and the server broadcasts live listing, price, and buy order events as they happen. The stream is receive-only: clients do not send messages, they only consume the broadcast events.\n\nEvery message shares the same envelope `{ event, ts, data }`, where `event` is the event name, `ts` is the Unix timestamp in seconds, and `data` holds the event payload. All monetary amounts are integer cents (for example `1525` = $15.25)."
   },
   "servers": {
     "production": {
@@ -17,14 +17,19 @@
     "marketStream": {
       "address": "/ws",
       "title": "Market stream",
-      "description": "Live stream of market events: price changes, new listings, and removed listings.",
+      "description": "Live stream of market events: price changes, new and removed listings, and buy order activity (added, removed, updated, activated, deactivated).",
       "servers": [
         { "$ref": "#/servers/production" }
       ],
       "messages": {
         "priceChanged": { "$ref": "#/components/messages/priceChanged" },
         "listingAdded": { "$ref": "#/components/messages/listingAdded" },
-        "listingRemoved": { "$ref": "#/components/messages/listingRemoved" }
+        "listingRemoved": { "$ref": "#/components/messages/listingRemoved" },
+        "buyorderAdded": { "$ref": "#/components/messages/buyorderAdded" },
+        "buyorderRemoved": { "$ref": "#/components/messages/buyorderRemoved" },
+        "buyorderUpdated": { "$ref": "#/components/messages/buyorderUpdated" },
+        "buyorderActivated": { "$ref": "#/components/messages/buyorderActivated" },
+        "buyorderDeactivated": { "$ref": "#/components/messages/buyorderDeactivated" }
       }
     }
   },
@@ -37,7 +42,12 @@
       "messages": [
         { "$ref": "#/channels/marketStream/messages/priceChanged" },
         { "$ref": "#/channels/marketStream/messages/listingAdded" },
-        { "$ref": "#/channels/marketStream/messages/listingRemoved" }
+        { "$ref": "#/channels/marketStream/messages/listingRemoved" },
+        { "$ref": "#/channels/marketStream/messages/buyorderAdded" },
+        { "$ref": "#/channels/marketStream/messages/buyorderRemoved" },
+        { "$ref": "#/channels/marketStream/messages/buyorderUpdated" },
+        { "$ref": "#/channels/marketStream/messages/buyorderActivated" },
+        { "$ref": "#/channels/marketStream/messages/buyorderDeactivated" }
       ]
     }
   },
@@ -63,6 +73,41 @@
         "summary": "A listing was removed from the market.",
         "contentType": "application/json",
         "payload": { "$ref": "#/components/schemas/ListingRemoved" }
+      },
+      "buyorderAdded": {
+        "name": "buyorder_added",
+        "title": "Buy order added",
+        "summary": "A new buy order was created.",
+        "contentType": "application/json",
+        "payload": { "$ref": "#/components/schemas/BuyorderAdded" }
+      },
+      "buyorderRemoved": {
+        "name": "buyorder_removed",
+        "title": "Buy order removed",
+        "summary": "A tracked buy order reached an amount of 0 and was removed.",
+        "contentType": "application/json",
+        "payload": { "$ref": "#/components/schemas/BuyorderRemoved" }
+      },
+      "buyorderUpdated": {
+        "name": "buyorder_updated",
+        "title": "Buy order updated",
+        "summary": "A buy order's price or amount changed.",
+        "contentType": "application/json",
+        "payload": { "$ref": "#/components/schemas/BuyorderUpdated" }
+      },
+      "buyorderActivated": {
+        "name": "buyorder_activated",
+        "title": "Buy order activated",
+        "summary": "A buy order's amount went from negative to positive (became active).",
+        "contentType": "application/json",
+        "payload": { "$ref": "#/components/schemas/BuyorderActivated" }
+      },
+      "buyorderDeactivated": {
+        "name": "buyorder_deactivated",
+        "title": "Buy order deactivated",
+        "summary": "A buy order's amount went from positive to negative (became inactive).",
+        "contentType": "application/json",
+        "payload": { "$ref": "#/components/schemas/BuyorderDeactivated" }
       }
     },
     "schemas": {
@@ -215,6 +260,281 @@
             "ts": 1782403724,
             "data": {
               "id": 57348505
+            }
+          }
+        ]
+      },
+      "BuyorderAdded": {
+        "type": "object",
+        "description": "Emitted when a new buy order is created (non-zero amount) and is not yet tracked.",
+        "required": ["event", "ts", "data"],
+        "properties": {
+          "event": {
+            "type": "string",
+            "const": "buyorder_added",
+            "description": "Event name."
+          },
+          "ts": {
+            "type": "integer",
+            "description": "Unix timestamp (seconds) of the event.",
+            "examples": [1782403724]
+          },
+          "data": {
+            "type": "object",
+            "required": ["id", "itemId", "price", "amount"],
+            "properties": {
+              "id": {
+                "type": "integer",
+                "description": "Buy order id.",
+                "examples": [880421]
+              },
+              "itemId": {
+                "type": "integer",
+                "description": "Catalog item id.",
+                "examples": [1536]
+              },
+              "price": {
+                "type": "integer",
+                "description": "Buy order price in integer cents.",
+                "examples": [1525]
+              },
+              "amount": {
+                "type": "integer",
+                "description": "Quantity requested by the buy order. A positive value denotes an active order; a negative value denotes an inactive one.",
+                "examples": [5]
+              }
+            }
+          }
+        },
+        "examples": [
+          {
+            "event": "buyorder_added",
+            "ts": 1782403724,
+            "data": {
+              "id": 880421,
+              "itemId": 1536,
+              "price": 1525,
+              "amount": 5
+            }
+          }
+        ]
+      },
+      "BuyorderRemoved": {
+        "type": "object",
+        "description": "Emitted when a tracked buy order reaches an amount of 0 and is removed.",
+        "required": ["event", "ts", "data"],
+        "properties": {
+          "event": {
+            "type": "string",
+            "const": "buyorder_removed",
+            "description": "Event name."
+          },
+          "ts": {
+            "type": "integer",
+            "description": "Unix timestamp (seconds) of the event.",
+            "examples": [1782403724]
+          },
+          "data": {
+            "type": "object",
+            "required": ["id", "itemId", "oldPrice"],
+            "properties": {
+              "id": {
+                "type": "integer",
+                "description": "Buy order id that was removed.",
+                "examples": [880421]
+              },
+              "itemId": {
+                "type": "integer",
+                "description": "Catalog item id.",
+                "examples": [1536]
+              },
+              "oldPrice": {
+                "type": "integer",
+                "description": "Price of the buy order before removal, in integer cents.",
+                "examples": [1525]
+              }
+            }
+          }
+        },
+        "examples": [
+          {
+            "event": "buyorder_removed",
+            "ts": 1782403724,
+            "data": {
+              "id": 880421,
+              "itemId": 1536,
+              "oldPrice": 1525
+            }
+          }
+        ]
+      },
+      "BuyorderUpdated": {
+        "type": "object",
+        "description": "Emitted when a buy order's price or amount changes without a change of sign on the amount.",
+        "required": ["event", "ts", "data"],
+        "properties": {
+          "event": {
+            "type": "string",
+            "const": "buyorder_updated",
+            "description": "Event name."
+          },
+          "ts": {
+            "type": "integer",
+            "description": "Unix timestamp (seconds) of the event.",
+            "examples": [1782403724]
+          },
+          "data": {
+            "type": "object",
+            "required": ["id", "itemId", "oldPrice", "newPrice", "oldAmount", "newAmount"],
+            "properties": {
+              "id": {
+                "type": "integer",
+                "description": "Buy order id.",
+                "examples": [880421]
+              },
+              "itemId": {
+                "type": "integer",
+                "description": "Catalog item id.",
+                "examples": [1536]
+              },
+              "oldPrice": {
+                "type": "integer",
+                "description": "Previous price in integer cents.",
+                "examples": [1525]
+              },
+              "newPrice": {
+                "type": "integer",
+                "description": "New price in integer cents.",
+                "examples": [1530]
+              },
+              "oldAmount": {
+                "type": "integer",
+                "description": "Previous quantity requested.",
+                "examples": [5]
+              },
+              "newAmount": {
+                "type": "integer",
+                "description": "New quantity requested.",
+                "examples": [3]
+              }
+            }
+          }
+        },
+        "examples": [
+          {
+            "event": "buyorder_updated",
+            "ts": 1782403724,
+            "data": {
+              "id": 880421,
+              "itemId": 1536,
+              "oldPrice": 1525,
+              "newPrice": 1530,
+              "oldAmount": 5,
+              "newAmount": 3
+            }
+          }
+        ]
+      },
+      "BuyorderActivated": {
+        "type": "object",
+        "description": "Emitted when a buy order's amount transitions from negative to positive (it becomes active).",
+        "required": ["event", "ts", "data"],
+        "properties": {
+          "event": {
+            "type": "string",
+            "const": "buyorder_activated",
+            "description": "Event name."
+          },
+          "ts": {
+            "type": "integer",
+            "description": "Unix timestamp (seconds) of the event.",
+            "examples": [1782403724]
+          },
+          "data": {
+            "type": "object",
+            "required": ["id", "itemId", "price", "amount"],
+            "properties": {
+              "id": {
+                "type": "integer",
+                "description": "Buy order id.",
+                "examples": [880421]
+              },
+              "itemId": {
+                "type": "integer",
+                "description": "Catalog item id.",
+                "examples": [1536]
+              },
+              "price": {
+                "type": "integer",
+                "description": "Buy order price in integer cents.",
+                "examples": [1525]
+              },
+              "amount": {
+                "type": "integer",
+                "description": "Quantity requested by the now-active buy order (positive).",
+                "examples": [5]
+              }
+            }
+          }
+        },
+        "examples": [
+          {
+            "event": "buyorder_activated",
+            "ts": 1782403724,
+            "data": {
+              "id": 880421,
+              "itemId": 1536,
+              "price": 1525,
+              "amount": 5
+            }
+          }
+        ]
+      },
+      "BuyorderDeactivated": {
+        "type": "object",
+        "description": "Emitted when a buy order's amount transitions from positive to negative (it becomes inactive).",
+        "required": ["event", "ts", "data"],
+        "properties": {
+          "event": {
+            "type": "string",
+            "const": "buyorder_deactivated",
+            "description": "Event name."
+          },
+          "ts": {
+            "type": "integer",
+            "description": "Unix timestamp (seconds) of the event.",
+            "examples": [1782403724]
+          },
+          "data": {
+            "type": "object",
+            "required": ["id", "itemId", "price"],
+            "properties": {
+              "id": {
+                "type": "integer",
+                "description": "Buy order id.",
+                "examples": [880421]
+              },
+              "itemId": {
+                "type": "integer",
+                "description": "Catalog item id.",
+                "examples": [1536]
+              },
+              "price": {
+                "type": "integer",
+                "description": "Buy order price in integer cents.",
+                "examples": [1525]
+              }
+            }
+          }
+        },
+        "examples": [
+          {
+            "event": "buyorder_deactivated",
+            "ts": 1782403724,
+            "data": {
+              "id": 880421,
+              "itemId": 1536,
+              "price": 1525
             }
           }
         ]
