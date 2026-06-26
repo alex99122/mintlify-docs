@@ -96,6 +96,7 @@
                   "POST /item/buyorder",
                   "POST /item/buyorder/update",
                   "POST /item/buyorder/remove",
+                  "POST /item/buyorder/bulk",
                   "GET /user/buyorder/{item}",
                   "GET /user/getBuyorder"
                 ]

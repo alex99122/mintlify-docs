@@ -1321,6 +1321,115 @@
         }
       }
     },
+    "/item/buyorder/bulk": {
+      "post": {
+        "operationId": "bulkBuyOrders",
+        "tags": [
+          "Buy Orders"
+        ],
+        "summary": "Bulk create/update/remove buy orders",
+        "description": "Processes up to 100 buy orders in a single request. For each entry, a new buy order is inserted, an existing one is updated, or it is removed when both `value` and `amount` are `0`. Each entry is validated independently, so the response can report partial success with a mix of processed entries and errors.\n\n**Permission:** Connected + API. **Rate limit:** 1 request per 5 seconds per API key.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "orders"
+                ],
+                "properties": {
+                  "orders": {
+                    "type": "array",
+                    "description": "List of buy orders to process (maximum 100)",
+                    "maxItems": 100,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "itemid",
+                        "value",
+                        "amount"
+                      ],
+                      "properties": {
+                        "itemid": {
+                          "type": "integer",
+                          "description": "Item ID (positive)"
+                        },
+                        "value": {
+                          "type": "integer",
+                          "description": "Buy order price in cents (positive). Set to 0 together with amount 0 to remove the existing buy order."
+                        },
+                        "amount": {
+                          "type": "integer",
+                          "description": "Number of items to buy (max 5000 per item). Set to 0 together with value 0 to remove the existing buy order."
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "example": {
+                "orders": [
+                  { "itemid": 123, "value": 50, "amount": 2 },
+                  { "itemid": 456, "value": 10, "amount": 5 },
+                  { "itemid": 321, "value": 0, "amount": 0 },
+                  { "itemid": 654, "value": 0, "amount": 0 },
+                  { "itemid": 789, "value": 100, "amount": 1 },
+                  { "itemid": 999, "value": 30, "amount": 1 },
+                  { "itemid": 111, "value": -5, "amount": 3 },
+                  { "itemid": 222, "value": 20, "amount": 9000 },
+                  { "itemid": 0, "value": 10, "amount": 1 }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Bulk buy orders processed",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "total": 9,
+                    "processed": 3,
+                    "errors": 6,
+                    "results": [
+                      { "itemid": 123, "status": "inserted", "message": "Inserted" },
+                      { "itemid": 456, "status": "updated", "message": "Buy order updated" },
+                      { "itemid": 321, "status": "removed", "message": "Removed" },
+                      { "itemid": 654, "status": "error", "message": "No buy order found" },
+                      { "itemid": 789, "status": "error", "message": "There is already an item on sale at this price or cheaper, please buy it directly!" },
+                      { "itemid": 999, "status": "error", "message": "Not enough balance" },
+                      { "itemid": 111, "status": "error", "message": "Value must be a positive number" },
+                      { "itemid": 222, "status": "error", "message": "Max 5000 items" },
+                      { "itemid": 0, "status": "error", "message": "Itemid must be a positive number" }
+                    ]
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "300": {
+            "$ref": "#/components/responses/BusinessError"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
     "/user/buyorder/{item}": {
       "get": {
         "operationId": "getUserBuyOrderForItem",
