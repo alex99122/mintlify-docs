@@ -2987,6 +2987,55 @@
         }
       }
     },
+    "/user/ban/{id}": {
+      "get": {
+        "operationId": "getUserBanStatus",
+        "tags": [
+          "User Account"
+        ],
+        "summary": "Ban status",
+        "description": "Returns whether the user with the given id is banned.\n\n**Permission:** Connected + API.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "User id (SteamID64)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ban status",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "banned": false
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
     "/user/store/{identifier}": {
       "get": {
         "operationId": "getPublicStoreProfile",

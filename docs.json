@@ -170,6 +170,7 @@
               "GET /user/balance",
               "GET /user/notifications",
               "GET /user/ipList",
+              "GET /user/ban/{id}",
               "GET /user/store/{identifier}",
               "GET /user/disconnect"
             ]
