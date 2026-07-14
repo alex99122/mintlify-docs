@@ -52,6 +52,12 @@
               "api-reference/authentication",
               "POST /user/login"
             ]
+          },
+          {
+            "group": "Brand",
+            "pages": [
+              "brand/logo"
+            ]
           }
         ]
       },
