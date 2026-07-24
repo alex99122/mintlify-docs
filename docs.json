@@ -58,6 +58,12 @@
             "pages": [
               "brand/logo"
             ]
+          },
+          {
+            "group": "Utilities",
+            "pages": [
+              "GET /utils/bots"
+            ]
           }
         ]
       },

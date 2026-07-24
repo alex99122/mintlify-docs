@@ -56,6 +56,10 @@
     {
       "name": "User Account",
       "description": "Account, balance, sessions, and history"
+    },
+    {
+      "name": "Utils",
+      "description": "Public utility endpoints"
     }
   ],
   "paths": {
@@ -3466,6 +3470,90 @@
           }
         }
       }
+    },
+    "/utils/bots": {
+      "get": {
+        "operationId": "getBots",
+        "tags": [
+          "Utils"
+        ],
+        "summary": "Get bot accounts",
+        "description": "Returns the full list of Mannco.store bot accounts with their Steam IDs, availability status, free inventory space, and per-game item counts.\n\nUse the `steamid` values to safely auto-accept incoming trade offers: an offer coming from one of these Steam IDs is a genuine Mannco.store bot.\n\n**Permission:** Public. No authentication required.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "List of bot accounts",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "bots": [
+                      {
+                        "id": 1,
+                        "name": "Mannco | Bot #0001",
+                        "steamid": "76561198399972772",
+                        "status": 0,
+                        "freespaceSteam": 2935,
+                        "disabled": 0,
+                        "Creationdate": "June 28, 2017",
+                        "TF2": 0,
+                        "CSGO": 609,
+                        "RUST": 1984,
+                        "DOTA": 1983
+                      },
+                      {
+                        "id": 2,
+                        "name": "Mannco | Bot #0002",
+                        "steamid": "76561198399987802",
+                        "status": 1,
+                        "freespaceSteam": 1789,
+                        "disabled": 0,
+                        "Creationdate": "June 28, 2017",
+                        "TF2": 0,
+                        "CSGO": 498,
+                        "RUST": 1995,
+                        "DOTA": 1972
+                      }
+                    ],
+                    "count": 532
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "err": {
+                      "type": "boolean"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "content": {
+                      "type": "object",
+                      "properties": {
+                        "bots": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Bot"
+                          }
+                        },
+                        "count": {
+                          "type": "integer",
+                          "description": "Total number of bot accounts returned"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3681,6 +3769,56 @@
             "additionalProperties": {
               "type": "string"
             }
+          }
+        }
+      },
+      "Bot": {
+        "type": "object",
+        "description": "A Mannco.store bot account. Trade offers sent from its `steamid` are genuine and can be safely auto-accepted.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Internal bot identifier."
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name of the bot, e.g. \"Mannco | Bot #0001\"."
+          },
+          "steamid": {
+            "type": "string",
+            "description": "The bot's 64-bit Steam ID. Match incoming trade offers against this value."
+          },
+          "status": {
+            "type": "integer",
+            "description": "Bot status. 1 = disabled, 0 = active."
+          },
+          "freespaceSteam": {
+            "type": "integer",
+            "description": "Number of free item slots left in the bot's Steam inventory."
+          },
+          "disabled": {
+            "type": "integer",
+            "description": "Whether the bot is disabled. 1 = disabled, 0 = active."
+          },
+          "Creationdate": {
+            "type": "string",
+            "description": "Human-readable date the bot account was created."
+          },
+          "TF2": {
+            "type": "integer",
+            "description": "Number of Team Fortress 2 (App ID 440) items held by the bot."
+          },
+          "CSGO": {
+            "type": "integer",
+            "description": "Number of CS2 / CS:GO (App ID 730) items held by the bot."
+          },
+          "RUST": {
+            "type": "integer",
+            "description": "Number of Rust (App ID 252490) items held by the bot."
+          },
+          "DOTA": {
+            "type": "integer",
+            "description": "Number of Dota 2 (App ID 570) items held by the bot."
           }
         }
       }
