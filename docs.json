@@ -149,7 +149,9 @@
               "GET /inventory/onSale",
               "GET /inventory/onInventory",
               "POST /inventory/price",
+              "POST /inventory/price/bulk",
               "POST /inventory/withdraw",
+              "api-reference/inventory/bulk-pricing",
               "api-reference/inventory/item-states"
             ]
           }

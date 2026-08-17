@@ -1,0 +1,271 @@
+---
+title: "Bulk pricing guide"
+sidebarTitle: "Bulk pricing guide"
+description: "Frontend integration guide for POST /inventory/price/bulk: limits, payload mapping, partial results, and pitfalls"
+---
+
+`POST /inventory/price/bulk` lists or reprices **multiple item types** in one request. It is the bulk counterpart of `POST /inventory/price`, which handles one type per call.
+
+Base URL: `https://api.mannco.store`. Prices are always **integer cents** (`$1.50` → `150`).
+
+<Warning>
+  Never send dollars or floats. `1.50` is not a valid price; `150` is.
+</Warning>
+
+## Endpoint
+
+```
+POST /inventory/price/bulk
+```
+
+**Permission:** Connected + API + 2FA.
+
+| Header | Required | Notes |
+|---|---|---|
+| `Authorization: Bearer <jwt>` | if the `token` cookie is not sent | Same JWT as the rest of the site |
+| `X-TwoFA: <code>` | browser session JWT | TOTP code. API tokens (`API: true`) skip 2FA |
+| `Content-Type: application/json` | recommended | The router parses the JSON body when `$_POST` is empty |
+
+CSRF is **not** required on this route, because it carries the `api` filter.
+
+A missing or invalid 2FA code returns HTTP **403** with an envelope that differs from the usual `{ err, success, content }` shape:
+
+```json
+{ "error": "2FA" }
+```
+
+## Request body
+
+```json
+{
+  "items": [
+    { "ids": "4400000001,4400000002,4400000003", "price": 150 },
+    { "ids": ["7300000042"], "price": 3200 }
+  ]
+}
+```
+
+`items` may also be a JSON **string** for form-encoded posts, but a JSON body is preferred.
+
+<ParamField body="items" type="array" required>
+  1–50 groups. More than 50 fails the **whole** request.
+</ParamField>
+
+<ParamField body="items[].ids" type="string | string[]" required>
+  Steam `assetId`s, digits only. Accepts a comma-separated string or an array.
+</ParamField>
+
+<ParamField body="items[].price" type="integer" required>
+  Price in cents, `1` to `5000000`.
+</ParamField>
+
+This endpoint both **lists** inventory (`backpack.state = 0`) and **reprices** existing listings (`state = 1`). See [Item states](/api-reference/inventory/item-states).
+
+### Hard limits
+
+Apply these client-side, before sending:
+
+- **50** item types per request (`INVENTORY_SELL_MAX_TYPES`)
+- **1000** `assetId`s across all groups (`INVENTORY_SELL_MAX_ASSETS`)
+- An `assetId` may appear in **only one** group, otherwise `Duplicate assetId`
+- Every `assetId` in a group must share the **same `item_id`**
+
+<Tip>
+  The `ids` field returned by `GET /inventory/onInventory` and `GET /inventory/onSale` is already a `GROUP_CONCAT` of `assetId`s — reuse it as-is.
+</Tip>
+
+## Mapping from `POST /inventory/price`
+
+Single type (old):
+
+```js
+{ ids: "1,2,3", price: 150 }
+```
+
+Bulk (new):
+
+```js
+{ items: [{ ids: "1,2,3", price: 150 }] }
+```
+
+Build one group per `item_id`, and per price when variants are priced differently:
+
+```javascript toBulkPayload.js
+function toBulkPayload(rows) {
+  // rows: [{ ids: "1,2,3" | ["1","2"], priceCents: 150 }, ...]
+  const items = rows
+    .filter((r) => r.priceCents > 0)
+    .map((r) => ({ ids: r.ids, price: r.priceCents }));
+
+  if (items.length === 0) throw new Error("empty");
+  if (items.length > 50) throw new Error("max 50 types");
+
+  const total = items.reduce((n, g) => {
+    const ids = typeof g.ids === "string" ? g.ids.split(",") : g.ids;
+    return n + ids.filter(Boolean).length;
+  }, 0);
+  if (total > 1000) throw new Error("max 1000 assets");
+
+  return { items };
+}
+```
+
+Above 50 types or 1000 assets, split the work into sequential requests.
+
+## Example call (website session)
+
+```javascript sellInventoryBulk.js
+async function sellInventoryBulk(groups, twoFaCode) {
+  const res = await fetch("https://api.mannco.store/inventory/price/bulk", {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      "X-TwoFA": twoFaCode,
+    },
+    body: JSON.stringify({ items: groups }),
+  });
+
+  if (res.status === 403) {
+    const body = await res.json().catch(() => ({}));
+    if (body.error === "2FA") throw new Error("2FA_REQUIRED");
+    throw new Error("FORBIDDEN");
+  }
+
+  const json = await res.json();
+  if (json.err) {
+    throw new Error(json.content?.message || "REQUEST_FAILED");
+  }
+  return json.content;
+}
+```
+
+## Response
+
+The endpoint returns HTTP **200** even when some groups fail. Read `content`, not `err`, to know what happened.
+
+```json
+{
+  "err": false,
+  "success": true,
+  "content": {
+    "total": 3,
+    "processed": 2,
+    "errors": 1,
+    "listed": 5,
+    "sold": 1,
+    "sold_buyorder": 2,
+    "results": [
+      {
+        "index": 0,
+        "item_id": 18472,
+        "status": "listed",
+        "message": "ok",
+        "listed": 3,
+        "sold": 1
+      },
+      {
+        "index": 1,
+        "item_id": 9021,
+        "status": "listed",
+        "message": "ok",
+        "listed": 2,
+        "sold": 0
+      },
+      {
+        "index": 2,
+        "item_id": 0,
+        "status": "error",
+        "message": "Item not found or not owned",
+        "listed": 0,
+        "sold": 0
+      }
+    ]
+  }
+}
+```
+
+| Field | Meaning |
+|---|---|
+| `total` | Number of groups in the request |
+| `processed` | Groups that fully succeeded |
+| `errors` | Groups that failed |
+| `listed` | Items put on sale (`state = 1`) in this call |
+| `sold` | Items sold **immediately** to a buy order (only the `assetId`s in this request) |
+| `sold_buyorder` | **Already-listed** rows of the same type matched afterwards — **not** broken down in `results[]` |
+| `results[].index` | Index in the submitted `items` array |
+| `results[].item_id` | Catalog id, `0` when the group never resolved a type |
+| `results[].status` | `"listed"` or `"error"` |
+| `results[].message` | `"ok"` or an error string |
+| `results[].listed` / `results[].sold` | Counts for that group |
+
+<Info>
+  A group can have `status: "error"` **and** `listed` / `sold` greater than `0`. Processing stops at the first failing `assetId`, but earlier items in that group stay written.
+</Info>
+
+In the UI, show a success toast when `errors === 0`. Otherwise list `results[i].message` per group and refresh the inventory and on-sale views.
+
+## Errors
+
+### Whole request
+
+`err: true`, HTTP **300**. Nothing is processed.
+
+| `content.message` | Cause |
+|---|---|
+| `Missing items array: [{ ids, price }]` | Empty or malformed body |
+| `Maximum 50 item types per request` | More than 50 groups |
+| `Invalid Steam ID` | Broken JWT |
+
+### Per group
+
+`status: "error"` in `results[]`. Other groups still run.
+
+| Message | Cause |
+|---|---|
+| `Each entry must be an object { ids, price }` | Invalid entry |
+| `Invalid ids format` / `Invalid assetId: X` | Empty or non-numeric ids |
+| `Duplicate assetId: X` | Same asset in two groups |
+| `Maximum 1000 assetIds per request` | Cumulative cap exceeded |
+| `Price too high or invalid` | Price outside `1…5000000` |
+| `You only can sell one item type at same time` | Mixed `item_id`s in one group |
+| `Item not found or not owned` | Not owned, or already gone |
+| `You cannot sell this item at a price lower than the buy order price` | A buy order sits **above** the asked price |
+| `This item will be locked for 7 days. …` | `backpack.expire` is still in the future, or CS:GO without `addrS = 1` |
+| High-stock / Steam card 753 cap | Asked price above the server ceiling |
+
+Always send **one group per `item_id`**.
+
+## Suggested UI flow
+
+<Steps>
+  <Step title="Select stacks">
+    The user picks stacks from `onInventory` / `onSale` and a price per stack.
+  </Step>
+  <Step title="Prefill prices">
+    Optionally call `GET /item/pricing/bulk` with the `item_id`s to prefill lowest sale, buy order, and suggested price. Block a price **below** the highest buy order to avoid the buy-order error.
+  </Step>
+  <Step title="Prompt 2FA once">
+    Ask for the TOTP code once for the whole batch.
+  </Step>
+  <Step title="Send the request">
+    `POST /inventory/price/bulk` with the mapped payload.
+  </Step>
+  <Step title="Report the result">
+    Show `listed`, `sold`, and `sold_buyorder`, for example “12 listed, 3 sold to a buy order, 2 other listings matched”.
+  </Step>
+  <Step title="Refresh">
+    Reload `onInventory`, `onSale`, and the balance.
+  </Step>
+</Steps>
+
+The seller fee is unchanged: **95%** to the seller (`ceil`, minimum platform fee 1¢ except on a 1¢ item). An item matched by a buy order leaves the seller's inventory and is transferred to the buyer.
+
+## Pitfalls
+
+- Do **not** send dollars (`1.50`) — integer cents only.
+- Do **not** treat `err: false` as “everything succeeded”. Check `content.errors` and `results`.
+- `sold_buyorder` can sell listings **outside** the current selection (same `item_id`, already `state = 1`). Warn the user when that matters: other listings of this type may fill a buy order.
+- A second click on the same `assetId`s: the first call lists or sells them, the second may return `Item not found or not owned` (already sold) or reprice them (still owned). Disable the button while the request is in flight.
+- Variants (spell, sheen, paint, gifted) of the **same** `item_id` may share a group **if they share a price**. Split groups when prices differ.
+- Over 50 types or 1000 assets, chunk into sequential requests. Do not rely on partial success for the 50-type cap — that one fails the whole call.

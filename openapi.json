@@ -1934,6 +1934,172 @@
         }
       }
     },
+    "/inventory/price/bulk": {
+      "post": {
+        "operationId": "setItemPriceBulk",
+        "tags": [
+          "Inventory"
+        ],
+        "summary": "Set item price (bulk)",
+        "description": "Prices multiple item types in a single request. This is the bulk counterpart of POST /inventory/price, which handles one type per call. The endpoint both lists inventory items (`backpack.state = 0`) and reprices existing listings (`state = 1`), and matches each group against existing buy orders exactly like the single-type route.\n\nEach group is one `item_id`: every `assetId` in a group must resolve to the same catalog item, and an `assetId` may appear in only one group. Limits are 50 groups and 1000 `assetId`s in total; exceeding 50 groups fails the whole request.\n\nGroups are validated independently, so the response reports partial success. The call returns HTTP 200 with `err: false` even when some groups fail — read `content.errors` and `content.results` to know what happened.\n\n**Permission:** Connected + API + 2FA. A browser session JWT must send the TOTP code in `X-TwoFA`; API tokens (`API: true`) satisfy 2FA automatically. CSRF is not required on this route.",
+        "parameters": [
+          {
+            "name": "X-TwoFA",
+            "in": "header",
+            "required": false,
+            "description": "TOTP code. Required for browser session JWTs, ignored for API tokens. A missing or invalid code returns HTTP 403 with `{ \"error\": \"2FA\" }`, which is not the usual `{ err, success, content }` envelope.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "123456"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "items"
+                ],
+                "properties": {
+                  "items": {
+                    "type": "array",
+                    "description": "Groups to price, one group per item type (maximum 50, and 1000 asset IDs across all groups). Also accepted as a JSON-encoded string for form-encoded posts.",
+                    "minItems": 1,
+                    "maxItems": 50,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "ids",
+                        "price"
+                      ],
+                      "properties": {
+                        "ids": {
+                          "description": "Steam asset IDs of one item type, as a comma-separated string or an array of strings. Digits only. The `ids` field returned by GET /inventory/onInventory and GET /inventory/onSale can be reused as-is.",
+                          "oneOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          ]
+                        },
+                        "price": {
+                          "type": "integer",
+                          "description": "Price in cents (1 to 5,000,000). Never send dollars or floats.",
+                          "minimum": 1,
+                          "maximum": 5000000
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "example": {
+                "items": [
+                  {
+                    "ids": "4400000001,4400000002,4400000003",
+                    "price": 150
+                  },
+                  {
+                    "ids": [
+                      "7300000042"
+                    ],
+                    "price": 3200
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Bulk pricing processed. Returned even when some groups fail.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "total": 3,
+                    "processed": 2,
+                    "errors": 1,
+                    "listed": 5,
+                    "sold": 1,
+                    "sold_buyorder": 2,
+                    "results": [
+                      {
+                        "index": 0,
+                        "item_id": 18472,
+                        "status": "listed",
+                        "message": "ok",
+                        "listed": 3,
+                        "sold": 1
+                      },
+                      {
+                        "index": 1,
+                        "item_id": 9021,
+                        "status": "listed",
+                        "message": "ok",
+                        "listed": 2,
+                        "sold": 0
+                      },
+                      {
+                        "index": 2,
+                        "item_id": 0,
+                        "status": "error",
+                        "message": "Item not found or not owned",
+                        "listed": 0,
+                        "sold": 0
+                      }
+                    ]
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "300": {
+            "description": "Business error. Nothing was processed: `Missing items array: [{ ids, price }]`, `Maximum 50 item types per request`, or `Invalid Steam ID`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "err": true,
+                  "success": false,
+                  "content": {
+                    "message": "Maximum 50 item types per request"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing or invalid 2FA code, or insufficient permissions. The 2FA case uses a bare `{ \"error\": \"2FA\" }` envelope.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "2FA"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
     "/inventory/withdraw": {
       "post": {
         "operationId": "withdrawItems",
