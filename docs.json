@@ -138,9 +138,15 @@
             "pages": [
               "GET /deposit/{game}",
               "POST /deposit/trade",
-              "GET /deposit/instantSell/{game}",
-              "POST /deposit/trade/instant",
               "GET /deposit/tradeStatus/{tradeid}"
+            ]
+          },
+          {
+            "group": "Instant Sell",
+            "pages": [
+              "api-reference/deposit/instant-sell",
+              "GET /deposit/instantSell/{game}",
+              "POST /deposit/trade/instant"
             ]
           },
           {

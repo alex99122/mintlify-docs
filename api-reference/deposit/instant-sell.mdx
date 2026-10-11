@@ -1,0 +1,322 @@
+---
+title: "Instant sell guide"
+sidebarTitle: "Instant sell guide"
+description: "Integrate instant sell: read sellable items and prices, submit a selection, choose a payout destination, and handle errors"
+---
+
+Instant sell lets a user sell items from their Steam inventory immediately at the best available market price. The user picks items and a payout destination, then accepts a Steam trade offer to complete the sale.
+
+Two endpoints are involved:
+
+- [`GET /deposit/instantSell/{game}`](/api-reference/listing/instant-sell-information) returns the sellable inventory with prices.
+- [`POST /deposit/trade/instant`](/api-reference/listing/create-instant-sell-trade) submits the selection.
+
+All responses use the standard envelope:
+
+```json
+{ "err": false, "success": true, "content": { } }
+```
+
+Errors return HTTP **300** with `{ "err": true, "success": false, "content": { "message": "…" } }`. There are no machine-readable error codes, so match on or display the message string.
+
+**Authentication:** send your API JWT as `Authorization: Bearer <token>`. Neither route requires 2FA.
+
+**Prices** are **integer cents**. `instant_sell_price` is the **sale** price, **not** the amount the seller receives (see [Seller fee](#seller-fee)).
+
+## Overview
+
+| | |
+|---|---|
+| Supported games | `440` (TF2), `730` (CS:GO), `570` (Dota 2), `252490` (Rust), `753` (Steam cards) |
+| Source | The user's **tradable** Steam inventory |
+| Pricing | One row per price level. A stack can be split across several rows at different prices |
+| Seller fee | **5%** (see [Seller fee](#seller-fee)) |
+| Payout | Site `balance`, or a linked cashout method (`payoneer`, `tipalti`, `stripe_connect`, `payviox_cashout`) |
+| Max per request | **5000** assets (**4000** for `753`) |
+| CS:GO (`730`) | Proceeds are held about **8 days** by Steam Trade Protection |
+
+## 1. GET `/deposit/instantSell/{game}`
+
+Returns the user's sellable inventory with an instant sell price on each row.
+
+```bash
+curl https://api.mannco.store/deposit/instantSell/440 \
+  -H "Authorization: Bearer $MANNCO_JWT"
+```
+
+```json Response
+{
+  "err": false,
+  "success": true,
+  "content": {
+    "informations": [
+      {
+        "market_hash_name": "Mann Co. Supply Crate Key",
+        "item_id": 1,
+        "url": "440-mann-co-supply-crate-key",
+        "image": "…",
+        "quality": "Unique",
+        "count": 3,
+        "assetid": "111;222;333",
+        "depositkey": {
+          "111": "a1b2…",
+          "222": "c3d4…",
+          "333": "e5f6…"
+        },
+        "instant_sell_price": 185
+      },
+      {
+        "market_hash_name": "Mann Co. Supply Crate Key",
+        "item_id": 1,
+        "url": "440-mann-co-supply-crate-key",
+        "count": 2,
+        "assetid": "444;555",
+        "depositkey": { "444": "…", "555": "…" },
+        "instant_sell_price": 180
+      },
+      {
+        "market_hash_name": "Winter 2024 Cosmetic Case",
+        "disabled": "blacklist",
+        "depositkey": "",
+        "count": 1,
+        "assetid": "999"
+      }
+    ]
+  }
+}
+```
+
+<Note>
+  Results are cached for up to **5 minutes**. If the user's inventory just changed, call `GET /deposit/{game}?force=1` (at most once per minute), then call this endpoint again.
+</Note>
+
+| Error message | When |
+|---|---|
+| `Failed to get items from Steam API` | Steam is unreachable |
+| `instant sell is not supported for this game` | Unsupported game |
+
+### Row fields
+
+| Field | Type | Description |
+|---|---|---|
+| `market_hash_name` | string | Steam market name |
+| `item_id` | int \| `""` | Mannco catalog id. Empty for items not in the catalog |
+| `url` | string | Catalog slug |
+| `image` | string | Steam icon hash or URL |
+| `quality` | string | Steam quality tag (`Unique`, `Unusual`, `Normal`…) |
+| `count` | int | Number of assets **in this row** |
+| `assetid` | string | Steam assetIds in this row, separated by `;` |
+| `depositkey` | object \| `""` | `{ assetId: key }` map when sellable. Empty string `""` (**not** `{}`) when not sellable |
+| `instant_sell_price` | int | Sale price for each asset in this row, in cents. Absent when `disabled` is set |
+| `disabled` | string | Why the row can't be sold. Absent when sellable |
+
+Additional fields by game:
+
+- **TF2 (`440`):** `unusual`, `paintcolor`, `craft`, `spell`, `sheen`, `killstreaker`, `class`.
+- **CS:GO (`730`):** `type`, `rarity`, `wear`, `pattern`, `stickers`, `keychains`. Items with a different wear or pattern are returned as separate rows.
+- **Steam (`753`):** `type`, `category`, `foil` (bool). Only trading cards are returned.
+
+### Price levels
+
+The same item can appear in **several rows**, each with its own `count`, `assetid`, `depositkey`, and `instant_sell_price`. This happens when a stack can't be sold entirely at a single price.
+
+For example, a user with 5 keys may get 3 at 185¢ and 2 at 180¢, returned as **two** rows (as in the response above). Treat each row as a separate offer: the user can sell one row without the other.
+
+### Disabled rows
+
+Rows with a `disabled` field can't be sold. Don't send them to the POST.
+
+| Value | Meaning |
+|---|---|
+| `blacklist` | This item is not accepted |
+| `highstock` | Mannco already holds enough of this item. Part of a stack may still be sellable in another row |
+| `no_active_buy_order` | No buyer at the moment |
+
+<Warning>
+  If `depositkey` is `""`, the row is not selectable. Never build or guess a key.
+</Warning>
+
+## 2. POST `/deposit/trade/instant`
+
+Submits the selected assets for instant sell. On success, the user receives a Steam trade offer to complete the sale.
+
+```bash
+curl -X POST https://api.mannco.store/deposit/trade/instant \
+  -H "Authorization: Bearer $MANNCO_JWT" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "game": 440,
+    "prices": { "111": 185, "222": 185, "333": 185, "444": 180 },
+    "depositKeys": { "111": "a1b2…", "222": "c3d4…", "333": "e5f6…", "444": "…" },
+    "cashout_method": "balance"
+  }'
+```
+
+### Body
+
+<ParamField body="game" type="integer" default="440">
+  `440`, `730`, `570`, `252490`, or `753`.
+</ParamField>
+
+<ParamField body="prices" type="object" required>
+  Map of **`assetId → price in cents`**. Use **exactly** the `instant_sell_price` from the asset's row.
+</ParamField>
+
+<ParamField body="depositKeys" type="object" required>
+  Map of **`assetId → depositkey`**, copied from the asset's row.
+</ParamField>
+
+<ParamField body="cashout_method" type="string" required>
+  `balance`, or one of `payoneer`, `tipalti`, `stripe_connect`, `payviox_cashout`. See [Payout destination](#payout-destination).
+</ParamField>
+
+<ParamField body="provider" type="string">
+  Must be `payviox` when `cashout_method` is `payviox_cashout`.
+</ParamField>
+
+<ParamField body="email" type="string">
+  Payout email. Required for `payviox_cashout`. `.ru` domains are not supported.
+</ParamField>
+
+<Warning>
+  Always send the exact `instant_sell_price` returned by the GET. A higher price won't find a buyer, and a lower price pays the user less. Don't send an `amount` field.
+</Warning>
+
+### Success response
+
+```json
+{
+  "err": false,
+  "success": true,
+  "content": {
+    "id": 184392,
+    "skipped_highstock": ["555"]
+  }
+}
+```
+
+| Field | Description |
+|---|---|
+| `id` | Instant sell id |
+| `skipped_highstock` | AssetIds that were removed from the sale because Mannco holds enough of them (can be `[]`). Remove them from your summary |
+
+### Payout destination
+
+#### `balance`
+
+Keeps the proceeds on the user's Mannco balance. There is no minimum or maximum, and no email is needed.
+
+#### Cashout methods
+
+`payoneer`, `tipalti`, `stripe_connect`, and `payviox_cashout` pay out to an external account. The user must have linked that account first. Call `GET /user/availableCashoutMethod` to see which methods are ready.
+
+The total is the sum of `prices` (after `skipped_highstock` removals). It must be **strictly greater** than the minimum and **at most** the maximum.
+
+| Method | Minimum (total must be greater than) | Maximum |
+|---|---|---|
+| `payoneer` | 2000¢ ($20.00) | 10,000,000¢ ($100,000) |
+| `tipalti` | 2000¢ ($20.00) | 10,000,000¢ ($100,000) |
+| `stripe_connect` | 2000¢ ($20.00) | 10,000,000¢ ($100,000) |
+| `payviox_cashout` | 499¢ ($4.99) | 100,000¢ ($1,000) |
+
+The payout is sent once the sale completes, not when you call the POST.
+
+### Error messages
+
+All errors are returned in `content.message`.
+
+| Message | When |
+|---|---|
+| `missing prices parameter` | `prices` is missing |
+| `missing depositKeys parameter` | `depositKeys` is missing |
+| `missing cashout_method parameter` | `cashout_method` is missing or empty |
+| `instant sell is not supported for this game` | Unsupported game |
+| `invalid JSON format in prices parameter` | `prices` is a string that isn't valid JSON |
+| `invalid JSON format in depositKeys parameter` | `depositKeys` is a string that isn't valid JSON |
+| `prices must be a JSON object with assetId -> price mapping` | `prices` is not an object |
+| `depositKeys must be a JSON object with assetId -> depositKey mapping` | `depositKeys` is not an object, or a value isn't a string |
+| `all prices must be integers` | A price is not a number |
+| `prices must be positive integers` | A price is negative |
+| `invalid deposit key for assetId: {id}` | The key doesn't match the asset or the user |
+| `You can deposit at most {n} items at once` | Too many assets in one request |
+| `All selected items exceed the maximum stock limit for their type` | Every selected asset was removed as high stock |
+| `Total deposit value is below the minimum cashout amount` | Total is at or below the method minimum |
+| `Total deposit value exceeds maximum for this cashout method` | Total is above the method maximum |
+| `Unknown cashout type` | Invalid `cashout_method` |
+| `Payoneer account not configured. …` | Payoneer is not linked |
+| `Tipalti account not configured. …` / `Tipalti payment method not configured. …` | Tipalti is not set up |
+| `Stripe Connect account not configured. …` | Stripe is not linked |
+| `Valid email required for Payviox payout` | Email is missing or invalid |
+| `This email domain is not supported` | Email domain is not supported |
+| `Invalid provider for Payviox cashout` | `provider` is not `payviox` |
+| `failed to save instant deposit` | Server error. Retry later |
+
+## Seller fee
+
+The seller receives the sale price minus a **5%** fee, rounded in the seller's favor. The minimum fee is 1¢, except on 1¢ items, where the seller keeps the full cent.
+
+```javascript seller-receives.js
+function sellerReceives(priceCents) {
+  const p = Number(priceCents);
+  if (p <= 0) return 0;
+  if (p === 1) return 1;
+  return Math.max(0, Math.min(p - 1, Math.ceil(p * 0.95)));
+}
+```
+
+## Recommended flow
+
+<Steps>
+  <Step title="Load the inventory">
+    Call `GET /deposit/instantSell/{game}`.
+  </Step>
+  <Step title="Show sellable rows">
+    Display rows **without** `disabled` and with an object `depositkey`. Show `instant_sell_price`, and optionally `sellerReceives(price)` next to it.
+  </Step>
+  <Step title="Let the user choose a destination">
+    Always offer `balance`. For cashouts, call `GET /user/availableCashoutMethod` and check the min/max against the selected total.
+  </Step>
+  <Step title="Submit the selection">
+    POST only the selected assets, each with **its own** `instant_sell_price` and `depositkey`.
+  </Step>
+  <Step title="Confirm">
+    Remove any `skipped_highstock` assets from the summary and tell the user to accept the Steam trade offer.
+  </Step>
+</Steps>
+
+```javascript instant-sell.js
+function buildInstantSellBody(rows, game, cashout_method, extra = {}) {
+  const prices = {};
+  const depositKeys = {};
+  for (const row of rows) {
+    if (row.disabled || !row.depositkey) continue;
+    for (const [assetId, key] of Object.entries(row.depositkey)) {
+      prices[assetId] = row.instant_sell_price;
+      depositKeys[assetId] = key;
+    }
+  }
+  return { game, prices, depositKeys, cashout_method, ...extra };
+}
+
+async function instantSell(selectedRows, game, cashoutMethod, jwt) {
+  const res = await fetch('https://api.mannco.store/deposit/trade/instant', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${jwt}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(buildInstantSellBody(selectedRows, game, cashoutMethod)),
+  });
+  const data = await res.json();
+  if (data.err) {
+    throw new Error(data.content?.message ?? 'Instant sell failed');
+  }
+  return data.content; // { id, skipped_highstock }
+}
+```
+
+## After the sale
+
+Once the user accepts the Steam trade offer, the items are sold and the proceeds are sent to the chosen destination.
+
+For **CS:GO**, Steam Trade Protection holds the proceeds for about 8 days. Use `GET /user/balance` (`pending`) and `GET /user/balance/waiting` (`details[].release_at`, `released`) to show the user when the funds will be available.

@@ -2687,28 +2687,64 @@
           "Listing"
         ],
         "summary": "Instant sell (information)",
-        "description": "Returns enriched inventory data for instant-sell pricing, built from cached deposit lists and buy-order tiers.\n\n**Permission:** Connected + API.",
+        "description": "Returns the user's tradable Steam inventory with an instant sell price on each row. The same item can appear in **several rows** at different prices, each with its own `count`, `assetid`, `depositkey`, and `instant_sell_price`.\n\n`instant_sell_price` is the sale price in cents, not the amount the seller receives. Rows with a `disabled` field (`blacklist`, `highstock`, `no_active_buy_order`) have `depositkey: \"\"` and must not be sent to `POST /deposit/trade/instant`.\n\nResults are cached for up to 5 minutes. To refresh, call `GET /deposit/{game}?force=1`, then call this endpoint again.\n\nSee the [Instant sell guide](/api-reference/deposit/instant-sell) for the full integration flow.\n\n**Permission:** Connected + API.",
         "parameters": [
           {
             "name": "game",
             "in": "path",
             "required": true,
-            "description": "Game id: 753, 440, or 252490",
+            "description": "Steam app id: `440` (TF2), `730` (CS:GO), `570` (Dota 2), `252490` (Rust), or `753` (Steam trading cards).",
             "schema": {
-              "type": "integer"
+              "type": "integer",
+              "enum": [440, 730, 570, 252490, 753]
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Instant sell inventory",
+            "description": "Instant sell inventory, one row per buy order tier",
             "content": {
               "application/json": {
                 "example": {
                   "err": false,
                   "success": true,
                   "content": {
-                    "informations": []
+                    "informations": [
+                      {
+                        "market_hash_name": "Mann Co. Supply Crate Key",
+                        "item_id": 1,
+                        "url": "440-mann-co-supply-crate-key",
+                        "quality": "Unique",
+                        "count": 3,
+                        "assetid": "111;222;333",
+                        "depositkey": {
+                          "111": "a1b2…",
+                          "222": "c3d4…",
+                          "333": "e5f6…"
+                        },
+                        "instant_sell_price": 185
+                      },
+                      {
+                        "market_hash_name": "Mann Co. Supply Crate Key",
+                        "item_id": 1,
+                        "url": "440-mann-co-supply-crate-key",
+                        "quality": "Unique",
+                        "count": 2,
+                        "assetid": "444;555",
+                        "depositkey": {
+                          "444": "…",
+                          "555": "…"
+                        },
+                        "instant_sell_price": 180
+                      },
+                      {
+                        "market_hash_name": "Winter 2024 Cosmetic Case",
+                        "disabled": "blacklist",
+                        "depositkey": "",
+                        "count": 1,
+                        "assetid": "999"
+                      }
+                    ]
                   }
                 },
                 "schema": {
@@ -2716,6 +2752,9 @@
                 }
               }
             }
+          },
+          "300": {
+            "$ref": "#/components/responses/BusinessError"
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
@@ -2736,7 +2775,7 @@
           "Listing"
         ],
         "summary": "Create instant sell trade",
-        "description": "Same general idea as POST /deposit/trade, plus a cashout method. Supported games: 753, 440, 252490. Requires prices and depositKeys as objects.\n\n**Permission:** Connected + API (2FA satisfied automatically with API JWT).",
+        "description": "Submits assets selected from `GET /deposit/instantSell/{game}` for instant sell. On success, the user receives a Steam trade offer; once it is accepted, the items are sold and the proceeds go to the chosen `cashout_method`.\n\nSend each asset with the exact `instant_sell_price` and `depositkey` from its GET row. A higher price won't find a buyer, and a lower price pays the user less. The seller receives the price minus a 5% fee.\n\nAt most 5000 assets per request (4000 for game `753`). Assets Mannco already holds enough of are removed and returned in `skipped_highstock`.\n\nSee the [Instant sell guide](/api-reference/deposit/instant-sell) for payout limits and the full error list.\n\n**Permission:** Connected + API. No 2FA.",
         "requestBody": {
           "required": true,
           "content": {
@@ -2749,52 +2788,74 @@
                   "depositKeys"
                 ],
                 "properties": {
-                  "cashout_method": {
-                    "type": "string",
-                    "description": "Instant sell payout method (server-defined values)"
+                  "game": {
+                    "type": "integer",
+                    "description": "Steam app id. Defaults to `440`.",
+                    "enum": [440, 730, 570, 252490, 753],
+                    "default": 440
                   },
                   "prices": {
                     "type": "object",
+                    "description": "Map of `assetId` to price in cents. Use the exact `instant_sell_price` of the asset's GET row. Also accepted as a JSON string for form-encoded posts.",
                     "additionalProperties": {
-                      "type": "integer"
+                      "type": "integer",
+                      "minimum": 1
                     }
                   },
                   "depositKeys": {
                     "type": "object",
+                    "description": "Map of `assetId` to the `depositkey` hash copied from the GET row. Also accepted as a JSON string for form-encoded posts.",
                     "additionalProperties": {
                       "type": "string"
                     }
                   },
-                  "game": {
-                    "type": "integer",
-                    "description": "Default 440. One of 753, 440, 252490",
-                    "default": 440
+                  "cashout_method": {
+                    "type": "string",
+                    "description": "Where the proceeds go. `balance` keeps the funds on the site balance (no min/max). Any other value is a real cashout and the account must already be linked (see `GET /user/availableCashoutMethod`).",
+                    "enum": ["balance", "payoneer", "tipalti", "stripe_connect", "payviox_cashout"]
+                  },
+                  "provider": {
+                    "type": "string",
+                    "description": "Required as `payviox` when `cashout_method` is `payviox_cashout`. Defaults to `cashout_method` otherwise.",
+                    "enum": ["payviox"]
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "description": "Payout email. Required for `payviox_cashout` (`.ru` domains are rejected). Optional for other methods."
                   }
                 }
               },
               "example": {
-                "cashout_method": "paypal",
+                "game": 440,
                 "prices": {
-                  "123456789": 15000
+                  "111": 185,
+                  "222": 185,
+                  "333": 185,
+                  "444": 180
                 },
                 "depositKeys": {
-                  "123456789": "..."
+                  "111": "a1b2…",
+                  "222": "c3d4…",
+                  "333": "e5f6…",
+                  "444": "…"
                 },
-                "game": 440
+                "cashout_method": "balance"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Instant sell trade created",
+            "description": "Instant sell deposit created",
             "content": {
               "application/json": {
                 "example": {
                   "err": false,
                   "success": true,
                   "content": {
-                    "id": 42
+                    "id": 184392,
+                    "skipped_highstock": ["555"]
                   }
                 },
                 "schema": {
