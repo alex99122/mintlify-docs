@@ -150,6 +150,16 @@
             ]
           },
           {
+            "group": "Instant Sell Partners",
+            "tag": "PARTNERS ONLY",
+            "pages": [
+              "api-reference/deposit/instant-sell-partners",
+              "GET /deposit/instantSell/thirdparty/{game}/{userid}",
+              "POST /deposit/trade/instant/thirdparty",
+              "GET /deposit/instantSell/thirdparty/status/{depositid}"
+            ]
+          },
+          {
             "group": "Inventory",
             "pages": [
               "GET /inventory/onSale",

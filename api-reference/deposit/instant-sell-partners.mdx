@@ -1,0 +1,373 @@
+---
+title: "Instant sell partners guide"
+sidebarTitle: "Partners guide"
+description: "For partnered websites only: quote another Steam user's inventory, sell their items to Mannco.store, and track each sale"
+---
+
+<Warning>
+  **Partnered websites only.** These endpoints are reserved for websites that Mannco.store has approved as instant sell partners. Your API account's SteamID64 must be on the partner allowlist, or every call returns **403**. If you're a regular user selling your own items, use the [Instant sell guide](/api-reference/deposit/instant-sell) instead.
+</Warning>
+
+Instant sell partners lets your website sell skins to Mannco.store on behalf of your own users. You quote a user's Steam inventory, submit the items they choose, and Mannco bots send the trade offer directly to that user. When the user accepts, the items are sold and the proceeds go to **your** partner account.
+
+## Become a partner
+
+Access is granted by Mannco.store, not requested through the API. To apply, contact Mannco.store support through [mannco.store](https://mannco.store) or [Discord](https://discord.gg/mannco) with:
+
+- The SteamID64 of the Mannco account your website will authenticate as.
+- Your website URL and a short description of your integration.
+
+Once approved, that SteamID64 is added to the partner allowlist. Only that account can call the partner endpoints.
+
+## How it differs from instant sell
+
+| | Instant sell | Instant sell partners |
+|---|---|---|
+| Who can use it | Any user | Allowlisted partner accounts only |
+| Inventory quoted | The caller's own | Any Steam user (`userid` in the path) |
+| Trade offer sent to | The caller's trade URL | The `steamid` / `tradeurl` you provide |
+| Proceeds and cashout | The caller | The partner account (the caller) |
+| `depositKeys` bound to | The caller | The inventory owner (`steamid`) |
+| Error `content` | `{ "message": "…" }` | A plain string |
+
+You're responsible for paying your user. Mannco.store credits the sale to your partner account only.
+
+## Endpoints
+
+| Step | Endpoint |
+|---|---|
+| Quote the user's inventory | [`GET /deposit/instantSell/thirdparty/{game}/{userid}`](/api-reference/instant-sell-partners/partner-instant-sell-information) |
+| Create the sale | [`POST /deposit/trade/instant/thirdparty`](/api-reference/instant-sell-partners/create-partner-instant-sell-trade) |
+| Follow the Steam offer | [`GET /deposit/tradeStatus/{tradeid}`](/api-reference/listing/get-trade-status) |
+| See which items sold | [`GET /deposit/instantSell/thirdparty/status/{depositid}`](/api-reference/instant-sell-partners/partner-instant-sell-status) |
+
+Base URL: `https://api.mannco.store`. Prices are integer **cents**.
+
+## Authentication
+
+Send your partner account's JWT as `Authorization: Bearer <token>`. None of these routes require 2FA or a CSRF token.
+
+| Failure | HTTP | `content` |
+|---|---|---|
+| Missing or invalid JWT | **401** | `You need to be connected to access this resource` |
+| Signed in, but not on the partner allowlist | **403** | `You don't have the permission to access this resource` |
+
+## 1. Quote the user's inventory
+
+Call `GET /deposit/instantSell/thirdparty/{game}/{userid}` with the user's SteamID64. The response has the same shape as [`GET /deposit/instantSell/{game}`](/api-reference/listing/instant-sell-information). This call doesn't create a deposit and doesn't move items.
+
+```bash
+curl https://api.mannco.store/deposit/instantSell/thirdparty/440/76561198000000000 \
+  -H "Authorization: Bearer $MANNCO_PARTNER_JWT"
+```
+
+```json Response
+{
+  "err": false,
+  "success": true,
+  "content": {
+    "informations": [
+      {
+        "market_hash_name": "Mann Co. Supply Crate Key",
+        "item_id": 1,
+        "url": "440-mann-co-supply-crate-key",
+        "quality": "Unique",
+        "count": 3,
+        "assetid": "111;222;333",
+        "depositkey": { "111": "a1b2…", "222": "c3d4…", "333": "e5f6…" },
+        "instant_sell_price": 185
+      },
+      {
+        "market_hash_name": "Mann Co. Supply Crate Key",
+        "item_id": 1,
+        "count": 2,
+        "assetid": "444;555",
+        "depositkey": { "444": "…", "555": "…" },
+        "instant_sell_price": 180
+      },
+      {
+        "market_hash_name": "Winter 2024 Cosmetic Case",
+        "disabled": "blacklist",
+        "depositkey": "",
+        "count": 1,
+        "assetid": "999"
+      }
+    ]
+  }
+}
+```
+
+Each row is one price tier. The same `item_id` can appear on several rows, so quote each row on its own. Rows with `disabled` have `depositkey: ""` and can't be sold.
+
+| Field | Description |
+|---|---|
+| `instant_sell_price` | Listed price of this tier, in cents. This is **not** what the seller receives (see [Seller fee](#seller-fee)) |
+| `count` | Number of copies in this tier |
+| `assetid` | Steam asset ids in this tier, separated by `;` |
+| `depositkey` | `{ assetId: key }` when the row can be sold, `""` otherwise |
+| `item_id` | Mannco catalog id. `""` when the item isn't in the catalog |
+| `disabled` | `blacklist`, `highstock`, or `no_active_buy_order`. Absent when sellable |
+| `nb_high_stock` | Copies of this item Mannco already holds |
+| `high_stock_limit` | Stock cap for this item (default 1000) |
+
+<Note>
+  The user's Steam inventory is cached for **5 minutes** and there is no `force` option. Prices are recalculated on every call. A private inventory, or Steam being unavailable with no cached snapshot, returns `"informations": []` instead of an error. Ask the user to make their inventory public and try again.
+</Note>
+
+| Error `content` (HTTP 300) | When |
+|---|---|
+| `invalid steam id` | `userid` isn't a SteamID64 (`7656119` + 10 digits) |
+| `instant sell is not supported for this game` | `game` isn't `440`, `730`, `570`, `252490`, or `753` |
+
+### How prices are set
+
+Prices come from the buy order book for each item, best price first. When buy orders don't cover the whole stack, a house price may apply to the remainder:
+
+| Item | House price |
+|---|---|
+| TF2 Unusual (not Unusual Taunts) | **1000¢**. A real buy order always wins |
+| Other TF2, CS:GO (not stickers or graffiti), Steam cards | **1¢**. A buy order only wins above 1¢ |
+| Everything else (stickers, graffiti, Dota 2, Rust…) | None. The row is `no_active_buy_order` |
+
+The 1¢ TF2 and CS:GO house price isn't offered when another user already has a listing at 1¢ or less.
+
+## 2. Create the sale
+
+Call `POST /deposit/trade/instant/thirdparty` with the selected assets and the user who receives the offer. The body is the same as [`POST /deposit/trade/instant`](/api-reference/listing/create-instant-sell-trade), plus `steamid` and `tradeurl`.
+
+```bash
+curl -X POST https://api.mannco.store/deposit/trade/instant/thirdparty \
+  -H "Authorization: Bearer $MANNCO_PARTNER_JWT" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "game": 440,
+    "steamid": "76561198000000000",
+    "tradeurl": "https://steamcommunity.com/tradeoffer/new/?partner=39734272&token=AbCdEf12",
+    "prices": { "111": 185, "222": 185 },
+    "depositKeys": { "111": "a1b2…", "222": "c3d4…" },
+    "cashout_method": "balance"
+  }'
+```
+
+<ParamField body="steamid" type="string" required>
+  SteamID64 of the user who receives the trade offer. Use the same `userid` you quoted. `steam_id` is accepted as an alias.
+</ParamField>
+
+<ParamField body="tradeurl" type="string" required>
+  That user's Steam trade URL, in the form `https://steamcommunity.com/tradeoffer/new/?partner=<digits>&token=<token>`. The `partner` value must be the account id of `steamid`. `trade_url` is accepted as an alias.
+</ParamField>
+
+<ParamField body="prices" type="object" required>
+  Map of `assetId → price in cents`. Use the exact `instant_sell_price` from each asset's row.
+</ParamField>
+
+<ParamField body="depositKeys" type="object" required>
+  Map of `assetId → depositkey`, copied from each asset's row. Keys are checked against `steamid`, so keys quoted for a different user are rejected.
+</ParamField>
+
+<ParamField body="cashout_method" type="string" required>
+  Where the proceeds go on **your partner account**: `balance`, or a cashout method linked to your account (`payoneer`, `tipalti`, `stripe_connect`, `payviox_cashout`). Limits are the same as [standard instant sell](/api-reference/deposit/instant-sell#payout-destination).
+</ParamField>
+
+<ParamField body="game" type="integer" default="440">
+  `440`, `730`, `570`, `252490`, or `753`.
+</ParamField>
+
+```json Response
+{
+  "err": false,
+  "success": true,
+  "content": {
+    "id": 184392,
+    "skipped_highstock": [],
+    "steamid": "76561198000000000"
+  }
+}
+```
+
+Store `content.id`. It's the deposit id you use to track the sale. Remove any `skipped_highstock` assets from what you show the user.
+
+| Error `content` (HTTP 300) | When |
+|---|---|
+| `missing steamid parameter` | `steamid` / `steam_id` is missing |
+| `invalid steam id` | `steamid` isn't a SteamID64 |
+| `missing tradeurl parameter` | `tradeurl` / `trade_url` is missing or empty |
+| `Invalid trade URL` | The URL isn't a Steam trade offer URL with `partner` and `token` |
+| `trade URL does not match steamid` | `partner` isn't the account id of `steamid` |
+| `invalid deposit key for assetId: {id}` | The key wasn't issued for this asset and `steamid` |
+
+All other errors (`missing prices parameter`, cashout errors, stock limits…) match [`POST /deposit/trade/instant`](/api-reference/deposit/instant-sell#error-messages), except that `content` is a plain string.
+
+## 3. Follow the trade offer
+
+Poll [`GET /deposit/tradeStatus/{tradeid}`](/api-reference/listing/get-trade-status) with `content.id` from step 2. Don't pass a `trades.id` or a Steam offer id.
+
+```bash
+curl https://api.mannco.store/deposit/tradeStatus/184392 \
+  -H "Authorization: Bearer $MANNCO_PARTNER_JWT"
+```
+
+Until the bot has created the offer, `trade_id` is `null` and there's no nested `trade`. Keep polling. Once the offer exists, `trade.offerid` is the Steam offer id and `trade.status` tracks it.
+
+| Field | Meaning |
+|---|---|
+| `send_steamid` / `tradeurl` | Where the bot sends the offer |
+| `instant` | `1` in progress or partial, `2` finished and paid, `3` CS:GO proceeds held, `4` reversed |
+| `trade_id` | Bot trade id once the offer is created, `null` before |
+| `trade.status` | `0` offer sent, `3` accepted, negative means failed |
+| `trade.offerid` | Steam trade offer id |
+| `trade.lasterror` | Last bot error, empty when there's none |
+| `pending_balance` | Cents still held for a CS:GO sale |
+
+| HTTP | `content` | When |
+|---|---|---|
+| **300** | `invalid tradeid parameter` | `tradeid` is 0 or negative |
+| **404** | `trade not found` | No deposit with this id |
+| **403** | `access denied` | The deposit was created by another account |
+
+## 4. Check which items sold
+
+Call `GET /deposit/instantSell/thirdparty/status/{depositid}` to see the outcome of each asset. Use it to pay your user for what actually sold.
+
+```bash
+curl https://api.mannco.store/deposit/instantSell/thirdparty/status/184392 \
+  -H "Authorization: Bearer $MANNCO_PARTNER_JWT"
+```
+
+```json Response
+{
+  "err": false,
+  "success": true,
+  "content": {
+    "id": 184392,
+    "instant": 2,
+    "game": 440,
+    "send_steamid": "76561198000000000",
+    "pending_balance": 0,
+    "total": 2,
+    "converted": 1,
+    "not_converted": 1,
+    "converted_cents": 176,
+    "items": [
+      {
+        "asset_id": "111",
+        "backpack_id": 61795830,
+        "name": "Mann Co. Supply Crate Key",
+        "price": 185,
+        "seller_cents": 176,
+        "status": "converted",
+        "converted": true
+      },
+      {
+        "asset_id": "222",
+        "backpack_id": 61795831,
+        "name": "Mann Co. Supply Crate Key",
+        "price": 185,
+        "seller_cents": 0,
+        "status": "not_converted",
+        "converted": false
+      }
+    ]
+  }
+}
+```
+
+| `status` | `converted` | Meaning |
+|---|---|---|
+| `pending` | `false` | Items not received yet, or waiting on the CS:GO game coordinator |
+| `converted` | `true` | Sold to a buyer or to the house |
+| `not_converted` | `false` | Received but not sold (no buy order), or never matched |
+| `reversed` | `false` | Sale voided |
+| `cancelled` | `false` | The trade never arrived |
+
+`seller_cents` is set only on `converted` lines. `converted_cents` is the total of those proceeds. For CS:GO, `pending_balance` is the part still held by Steam Trade Protection. It isn't added on top of `converted_cents`.
+
+| HTTP | `content` | When |
+|---|---|---|
+| **300** | `invalid deposit id` | `depositid` isn't a positive integer |
+| **300** | `not an instant sell` | The deposit is a classic deposit |
+| **404** | `deposit not found` | No deposit with this id |
+| **403** | `access denied` | The deposit was created by another account |
+
+## Seller fee
+
+Your account receives the listed price minus a **5%** fee, rounded in your favor, with a minimum fee of 1¢. A 1¢ item keeps its full cent.
+
+```javascript seller-receives.js
+function sellerReceives(priceCents) {
+  const p = Number(priceCents);
+  if (p <= 0) return 0;
+  if (p === 1) return 1;
+  return Math.min(p - 1, Math.ceil(p * 0.95));
+}
+```
+
+## Full example
+
+<Steps>
+  <Step title="Quote the inventory">
+    Call `GET /deposit/instantSell/thirdparty/{game}/{userid}` with your user's SteamID64.
+  </Step>
+  <Step title="Let your user choose">
+    Show rows without `disabled`. Display `instant_sell_price`, or what your user will be paid.
+  </Step>
+  <Step title="Create the sale">
+    Call `POST /deposit/trade/instant/thirdparty` with the same `steamid`, the user's trade URL, and each asset's own price and key.
+  </Step>
+  <Step title="Tell your user to accept the offer">
+    Poll `GET /deposit/tradeStatus/{tradeid}` until `trade.offerid` is set, then ask your user to accept the Steam offer.
+  </Step>
+  <Step title="Pay your user">
+    Call `GET /deposit/instantSell/thirdparty/status/{depositid}` and pay for the `converted` lines.
+  </Step>
+</Steps>
+
+```javascript partner-instant-sell.js
+const API = 'https://api.mannco.store';
+
+async function call(path, jwt, options = {}) {
+  const res = await fetch(`${API}${path}`, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${jwt}`,
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+  if (res.status === 401) throw new Error('Partner JWT missing or expired');
+  if (res.status === 403) throw new Error('Account not on the partner allowlist, or access denied');
+  const data = await res.json();
+  if (data.err) throw new Error(typeof data.content === 'string' ? data.content : 'Request failed');
+  return data.content;
+}
+
+export async function quote(game, steamid, jwt) {
+  const { informations } = await call(`/deposit/instantSell/thirdparty/${game}/${steamid}`, jwt);
+  return informations.filter((row) => !row.disabled && typeof row.depositkey === 'object');
+}
+
+export async function sell({ game, steamid, tradeurl, rows, jwt }) {
+  const prices = {};
+  const depositKeys = {};
+  for (const row of rows) {
+    for (const [assetId, key] of Object.entries(row.depositkey)) {
+      prices[assetId] = row.instant_sell_price;
+      depositKeys[assetId] = key;
+    }
+  }
+  return call('/deposit/trade/instant/thirdparty', jwt, {
+    method: 'POST',
+    body: JSON.stringify({ game, steamid, tradeurl, prices, depositKeys, cashout_method: 'balance' }),
+  }); // { id, skipped_highstock, steamid }
+}
+
+export async function soldItems(depositId, jwt) {
+  const status = await call(`/deposit/instantSell/thirdparty/status/${depositId}`, jwt);
+  return status.items.filter((item) => item.converted);
+}
+```
+
+## Next steps
+
+- [Instant sell guide](/api-reference/deposit/instant-sell) for payout limits and the full POST error list.
+- [Authentication](/api-reference/authentication) to get your partner JWT.

@@ -50,6 +50,10 @@
       "description": "Deposit Steam items and instant sell"
     },
     {
+      "name": "Instant Sell Partners",
+      "description": "Instant sell on behalf of another Steam user. Partnered websites only"
+    },
+    {
       "name": "Trading",
       "description": "Active and historical trades"
     },
@@ -2876,6 +2880,452 @@
         }
       }
     },
+    "/deposit/instantSell/thirdparty/{game}/{userid}": {
+      "get": {
+        "operationId": "getPartnerInstantSellInformation",
+        "tags": [
+          "Instant Sell Partners"
+        ],
+        "summary": "Partner instant sell (information)",
+        "description": "**Partners only.** This endpoint is reserved for partnered websites that Mannco.store has approved. The SteamID64 of your API account must be on the partner allowlist; otherwise every call returns **403**. Contact Mannco.store to apply. Regular users should use the standard instant sell endpoints.\n\nReturns the instant sell quote for **another** Steam user's tradable inventory: the user identified by `userid`, not the caller. The payload is the same as `GET /deposit/instantSell/{game}` for that user. This call does not create a deposit and does not move items.\n\nEach row is one buy order tier. Rows you can sell have `instant_sell_price` and a `depositkey` object. Rows you can't sell have `disabled` and `depositkey: \"\"`. The `depositkey` values are bound to `userid` and to these asset ids. Send them to `POST /deposit/trade/instant/thirdparty` with the same `steamid`.\n\nThe Steam snapshot is cached for 5 minutes and there is no `force` option. Prices are recalculated on every call. A private inventory, or Steam being down with no cached snapshot, returns `informations: []`.\n\nSee the [Instant sell partners guide](/api-reference/deposit/instant-sell-partners) for the full flow.\n\n**Permission:** Connected + API + partner allowlist. No 2FA.",
+        "parameters": [
+          {
+            "name": "game",
+            "in": "path",
+            "required": true,
+            "description": "Steam app id: `440` (TF2), `730` (CS:GO), `570` (Dota 2), `252490` (Rust), or `753` (Steam).",
+            "schema": {
+              "type": "integer",
+              "enum": [
+                440,
+                730,
+                570,
+                252490,
+                753
+              ]
+            }
+          },
+          {
+            "name": "userid",
+            "in": "path",
+            "required": true,
+            "description": "SteamID64 of the inventory owner (`7656119` followed by 10 digits).",
+            "schema": {
+              "type": "string",
+              "pattern": "^7656119[0-9]{10}$",
+              "example": "76561198000000000"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Instant sell quote for the user's inventory, one row per buy order tier",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "informations": [
+                      {
+                        "market_hash_name": "Mann Co. Supply Crate Key",
+                        "item_id": 1,
+                        "url": "440-mann-co-supply-crate-key",
+                        "quality": "Unique",
+                        "count": 3,
+                        "assetid": "111;222;333",
+                        "depositkey": {
+                          "111": "a1b2…",
+                          "222": "c3d4…",
+                          "333": "e5f6…"
+                        },
+                        "instant_sell_price": 185,
+                        "nb_high_stock": 412,
+                        "high_stock_limit": 1000
+                      },
+                      {
+                        "market_hash_name": "Mann Co. Supply Crate Key",
+                        "item_id": 1,
+                        "count": 2,
+                        "assetid": "444;555",
+                        "depositkey": {
+                          "444": "…",
+                          "555": "…"
+                        },
+                        "instant_sell_price": 180
+                      },
+                      {
+                        "market_hash_name": "Winter 2024 Cosmetic Case",
+                        "disabled": "blacklist",
+                        "depositkey": "",
+                        "count": 1,
+                        "assetid": "999"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "300": {
+            "description": "Validation error. `content` is a string: `invalid steam id`, or `instant sell is not supported for this game`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "err": true,
+                  "success": false,
+                  "content": "invalid steam id"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid JWT.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "err": true,
+                  "success": false,
+                  "content": "You need to be connected to access this resource"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Signed in, but your SteamID64 is not on the partner allowlist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "err": true,
+                  "success": false,
+                  "content": "You don't have the permission to access this resource"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/deposit/trade/instant/thirdparty": {
+      "post": {
+        "operationId": "createPartnerInstantSellTrade",
+        "tags": [
+          "Instant Sell Partners"
+        ],
+        "summary": "Create partner instant sell trade",
+        "description": "**Partners only.** This endpoint is reserved for partnered websites that Mannco.store has approved. The SteamID64 of your API account must be on the partner allowlist; otherwise every call returns **403**. Contact Mannco.store to apply. Regular users should use the standard instant sell endpoints.\n\nCreates an instant sell for items in another Steam user's inventory. The body is the same as `POST /deposit/trade/instant`, plus the `steamid` and `tradeurl` of the user who receives the Steam trade offer.\n\n- The deposit is stored on **your** partner account. The sale credit and the cashout go to your account, and `cashout_method` is validated against it.\n- Mannco bots send the trade offer to `steamid` / `tradeurl`, not to your own trade URL.\n- `depositKeys` are checked against `steamid`. Use the keys returned by `GET /deposit/instantSell/thirdparty/{game}/{userid}` for that same user.\n\nOn success, `content.id` is the deposit id. Poll `GET /deposit/tradeStatus/{tradeid}` for the offer, and `GET /deposit/instantSell/thirdparty/status/{depositid}` to see which items sold.\n\nSee the [Instant sell partners guide](/api-reference/deposit/instant-sell-partners) for the full flow and error list.\n\n**Permission:** Connected + API + partner allowlist. No 2FA.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "steamid",
+                  "tradeurl",
+                  "prices",
+                  "depositKeys",
+                  "cashout_method"
+                ],
+                "properties": {
+                  "game": {
+                    "type": "integer",
+                    "description": "Steam app id. Defaults to `440`.",
+                    "enum": [
+                      440,
+                      730,
+                      570,
+                      252490,
+                      753
+                    ],
+                    "default": 440
+                  },
+                  "steamid": {
+                    "type": "string",
+                    "pattern": "^7656119[0-9]{10}$",
+                    "description": "SteamID64 of the inventory owner who receives the trade offer. Must be the `userid` you quoted. `steam_id` is accepted as an alias."
+                  },
+                  "tradeurl": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "That user's Steam trade URL: `https://steamcommunity.com/tradeoffer/new/?partner=<digits>&token=<token>`. `partner` must be the account id of `steamid`. `trade_url` is accepted as an alias."
+                  },
+                  "prices": {
+                    "type": "object",
+                    "description": "Map of `assetId` to price in cents. Use the exact `instant_sell_price` of the asset's row.",
+                    "additionalProperties": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  },
+                  "depositKeys": {
+                    "type": "object",
+                    "description": "Map of `assetId` to the `depositkey` copied from the asset's row.",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "cashout_method": {
+                    "type": "string",
+                    "description": "Where the proceeds go, on **your** partner account. `balance`, or a cashout method linked to your account.",
+                    "enum": [
+                      "balance",
+                      "payoneer",
+                      "tipalti",
+                      "stripe_connect",
+                      "payviox_cashout"
+                    ]
+                  },
+                  "provider": {
+                    "type": "string",
+                    "description": "Required as `payviox` when `cashout_method` is `payviox_cashout`.",
+                    "enum": [
+                      "payviox"
+                    ]
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "description": "Payout email. Required for `payviox_cashout`."
+                  }
+                }
+              },
+              "example": {
+                "game": 440,
+                "steamid": "76561198000000000",
+                "tradeurl": "https://steamcommunity.com/tradeoffer/new/?partner=39734272&token=AbCdEf12",
+                "prices": {
+                  "111": 185,
+                  "222": 185
+                },
+                "depositKeys": {
+                  "111": "a1b2…",
+                  "222": "c3d4…"
+                },
+                "cashout_method": "balance"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Partner instant sell deposit created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "id": 184392,
+                    "skipped_highstock": [],
+                    "steamid": "76561198000000000"
+                  }
+                }
+              }
+            }
+          },
+          "300": {
+            "description": "Validation error. `content` is a string, for example `trade URL does not match steamid` or `invalid deposit key for assetId: 111`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "err": true,
+                  "success": false,
+                  "content": "trade URL does not match steamid"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid JWT.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "err": true,
+                  "success": false,
+                  "content": "You need to be connected to access this resource"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Signed in, but your SteamID64 is not on the partner allowlist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "err": true,
+                  "success": false,
+                  "content": "You don't have the permission to access this resource"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/deposit/instantSell/thirdparty/status/{depositid}": {
+      "get": {
+        "operationId": "getPartnerInstantSellStatus",
+        "tags": [
+          "Instant Sell Partners"
+        ],
+        "summary": "Partner instant sell status",
+        "description": "**Partners only.** This endpoint is reserved for partnered websites that Mannco.store has approved. The SteamID64 of your API account must be on the partner allowlist; otherwise every call returns **403**. Contact Mannco.store to apply. Regular users should use the standard instant sell endpoints.\n\nReturns which items of a partner instant sell were sold and which were not. There is one line per asset you sent in `prices`.\n\n`converted: true` means the item left the seller (sold to a buyer or to the house). `seller_cents` is the amount after the 5% fee, set only on `converted` lines. `converted_cents` is the total of those proceeds. `pending_balance` is the CS:GO amount still held by Trade Protection.\n\n| `status` | Meaning |\n|---|---|\n| `pending` | Items not received yet, or waiting on the CS:GO game coordinator |\n| `converted` | Sold |\n| `not_converted` | Received but not sold (no buy order), or never matched |\n| `reversed` | Sale voided |\n| `cancelled` | Trade never arrived |\n\n`instant`: `1` in progress or partial, `2` paid, `3` CS:GO proceeds held, `4` reversed.\n\n**Permission:** Connected + API + partner allowlist. You can only read deposits that your account created.",
+        "parameters": [
+          {
+            "name": "depositid",
+            "in": "path",
+            "required": true,
+            "description": "`content.id` returned by `POST /deposit/trade/instant/thirdparty`.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 184392
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Per-item outcome of the partner instant sell",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "err": false,
+                  "success": true,
+                  "content": {
+                    "id": 184392,
+                    "instant": 2,
+                    "game": 440,
+                    "send_steamid": "76561198000000000",
+                    "pending_balance": 0,
+                    "total": 2,
+                    "converted": 1,
+                    "not_converted": 1,
+                    "converted_cents": 176,
+                    "items": [
+                      {
+                        "asset_id": "111",
+                        "backpack_id": 61795830,
+                        "name": "Mann Co. Supply Crate Key",
+                        "price": 185,
+                        "seller_cents": 176,
+                        "status": "converted",
+                        "converted": true
+                      },
+                      {
+                        "asset_id": "222",
+                        "backpack_id": 61795831,
+                        "name": "Mann Co. Supply Crate Key",
+                        "price": 185,
+                        "seller_cents": 0,
+                        "status": "not_converted",
+                        "converted": false
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "300": {
+            "description": "`invalid deposit id`, or `not an instant sell` (the deposit is a classic deposit).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "err": true,
+                  "success": false,
+                  "content": "not an instant sell"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid JWT.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "err": true,
+                  "success": false,
+                  "content": "You need to be connected to access this resource"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not on the partner allowlist, or the deposit was created by another account (`access denied`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "err": true,
+                  "success": false,
+                  "content": "access denied"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No deposit with this id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "err": true,
+                  "success": false,
+                  "content": "deposit not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
     "/deposit/tradeStatus/{tradeid}": {
       "get": {
         "operationId": "getTradeStatus",
@@ -2883,7 +3333,7 @@
           "Listing"
         ],
         "summary": "Get trade status",
-        "description": "Returns the deposit row plus nested `trade` when available. Trade status: 0 = Pending, 3 = Completed, -1 = Failed.\n\n**Permission:** Connected + API.",
+        "description": "Returns the deposit row plus nested `trade` when available. Trade status: 0 = Pending, 3 = Completed, -1 = Failed.\n\nAlso used by partners to follow a deposit created with `POST /deposit/trade/instant/thirdparty`. Pass `content.id` from that call. The row then includes `send_steamid` and `tradeurl` (where the bot sends the offer), and `instant` (`1` in progress, `2` paid, `3` CS:GO proceeds held, `4` reversed). The nested `trade` is absent until the bot has created the offer.\n\n**Permission:** Connected + API. Only the account that created the deposit can read it.",
         "parameters": [
           {
             "name": "tradeid",
