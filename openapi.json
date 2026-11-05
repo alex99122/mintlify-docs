@@ -3028,7 +3028,7 @@
           "Instant Sell Partners"
         ],
         "summary": "Create partner instant sell trade",
-        "description": "**Partners only.** This endpoint is reserved for partnered websites that Mannco.store has approved. The SteamID64 of your API account must be on the partner allowlist; otherwise every call returns **403**. Contact Mannco.store to apply. Regular users should use the standard instant sell endpoints.\n\nCreates an instant sell for items in another Steam user's inventory. The body is the same as `POST /deposit/trade/instant`, plus the `steamid` and `tradeurl` of the user who receives the Steam trade offer.\n\n- The deposit is stored on **your** partner account. The sale credit and the cashout go to your account, and `cashout_method` is validated against it.\n- Mannco bots send the trade offer to `steamid` / `tradeurl`, not to your own trade URL.\n- `depositKeys` are checked against `steamid`. Use the keys returned by `GET /deposit/instantSell/thirdparty/{game}/{userid}` for that same user.\n\nOn success, `content.id` is the deposit id. Poll `GET /deposit/tradeStatus/{tradeid}` for the offer, and `GET /deposit/instantSell/thirdparty/status/{depositid}` to see which items sold.\n\nSee the [Instant sell partners guide](/api-reference/deposit/instant-sell-partners) for the full flow and error list.\n\n**Permission:** Connected + API + partner allowlist. No 2FA.",
+        "description": "**Partners only.** This endpoint is reserved for partnered websites that Mannco.store has approved. The SteamID64 of your API account must be on the partner allowlist; otherwise every call returns **403**. Contact Mannco.store to apply. Regular users should use the standard instant sell endpoints.\n\nCreates an instant sell for items in another Steam user's inventory. The body is the same as `POST /deposit/trade/instant`, plus the `steamid` and `tradeurl` of the user who receives the Steam trade offer.\n\n- The deposit is stored on **your** partner account. The proceeds are credited to your account's Mannco balance. `cashout_method` must be `balance`.\n- Mannco bots send the trade offer to `steamid` / `tradeurl`, not to your own trade URL.\n- `depositKeys` are checked against `steamid`. Use the keys returned by `GET /deposit/instantSell/thirdparty/{game}/{userid}` for that same user.\n\nOn success, `content.id` is the deposit id. Poll `GET /deposit/tradeStatus/{tradeid}` for the offer, and `GET /deposit/instantSell/thirdparty/status/{depositid}` to see which items sold.\n\nSee the [Instant sell partners guide](/api-reference/deposit/instant-sell-partners) for the full flow and error list.\n\n**Permission:** Connected + API + partner allowlist. No 2FA.",
         "requestBody": {
           "required": true,
           "content": {
@@ -3082,26 +3082,10 @@
                   },
                   "cashout_method": {
                     "type": "string",
-                    "description": "Where the proceeds go, on **your** partner account. `balance`, or a cashout method linked to your account.",
+                    "description": "Must be `balance`. Proceeds are credited to the Mannco balance of **your** partner account. No other cashout method is available for partner instant sell.",
                     "enum": [
-                      "balance",
-                      "payoneer",
-                      "tipalti",
-                      "stripe_connect",
-                      "payviox_cashout"
+                      "balance"
                     ]
-                  },
-                  "provider": {
-                    "type": "string",
-                    "description": "Required as `payviox` when `cashout_method` is `payviox_cashout`.",
-                    "enum": [
-                      "payviox"
-                    ]
-                  },
-                  "email": {
-                    "type": "string",
-                    "format": "email",
-                    "description": "Payout email. Required for `payviox_cashout`."
                   }
                 }
               },

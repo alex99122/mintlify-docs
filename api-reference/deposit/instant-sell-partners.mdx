@@ -26,7 +26,7 @@ Once approved, that SteamID64 is added to the partner allowlist. Only that accou
 | Who can use it | Any user | Allowlisted partner accounts only |
 | Inventory quoted | The caller's own | Any Steam user (`userid` in the path) |
 | Trade offer sent to | The caller's trade URL | The `steamid` / `tradeurl` you provide |
-| Proceeds and cashout | The caller | The partner account (the caller) |
+| Proceeds go to | The caller's balance or a linked cashout method | The partner account's Mannco balance only |
 | `depositKeys` bound to | The caller | The inventory owner (`steamid`) |
 | Error `content` | `{ "message": "…" }` | A plain string |
 
@@ -166,7 +166,7 @@ curl -X POST https://api.mannco.store/deposit/trade/instant/thirdparty \
 </ParamField>
 
 <ParamField body="cashout_method" type="string" required>
-  Where the proceeds go on **your partner account**: `balance`, or a cashout method linked to your account (`payoneer`, `tipalti`, `stripe_connect`, `payviox_cashout`). Limits are the same as [standard instant sell](/api-reference/deposit/instant-sell#payout-destination).
+  Must be `balance`. The proceeds are credited to the Mannco balance of **your partner account**. No other cashout method is available for partner instant sell.
 </ParamField>
 
 <ParamField body="game" type="integer" default="440">
@@ -196,7 +196,7 @@ Store `content.id`. It's the deposit id you use to track the sale. Remove any `s
 | `trade URL does not match steamid` | `partner` isn't the account id of `steamid` |
 | `invalid deposit key for assetId: {id}` | The key wasn't issued for this asset and `steamid` |
 
-All other errors (`missing prices parameter`, cashout errors, stock limits…) match [`POST /deposit/trade/instant`](/api-reference/deposit/instant-sell#error-messages), except that `content` is a plain string.
+All other errors (`missing prices parameter`, `invalid deposit key…`, stock limits…) match [`POST /deposit/trade/instant`](/api-reference/deposit/instant-sell#error-messages), except that `content` is a plain string.
 
 ## 3. Follow the trade offer
 
@@ -369,5 +369,5 @@ export async function soldItems(depositId, jwt) {
 
 ## Next steps
 
-- [Instant sell guide](/api-reference/deposit/instant-sell) for payout limits and the full POST error list.
+- [Instant sell guide](/api-reference/deposit/instant-sell) for the full POST error list.
 - [Authentication](/api-reference/authentication) to get your partner JWT.
