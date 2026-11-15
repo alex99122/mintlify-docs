@@ -50,7 +50,7 @@ Each group in `informations` matches a deposit row: `assetid` values separated b
 
 ## List
 
-`POST /p2p/list` lists one asset. Requires **2FA**.
+`POST /p2p/list` lists one asset.
 
 ```bash
 curl -X POST https://api.mannco.store/p2p/list \
@@ -81,7 +81,7 @@ You can have at most **500** active listings.
 
 ## Unlist
 
-`POST /p2p/unlist` removes a listing. Requires **2FA**.
+`POST /p2p/unlist` removes a listing.
 
 ```json
 { "listing_id": 42 }
@@ -91,7 +91,7 @@ Allowed while the listing is for sale or paused. Rejected with `listing reserved
 
 ## Change the price
 
-`POST /p2p/listing/price` reprices a listing. Requires **2FA**.
+`POST /p2p/listing/price` reprices a listing.
 
 ```json
 { "listing_id": 42, "price_cents": 200 }

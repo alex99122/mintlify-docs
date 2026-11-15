@@ -57,8 +57,8 @@ Install the extension and leave it running **on the seller's side**, in one brow
 | | |
 |---|---|
 | Auth | `Authorization: Bearer <jwt>`, or the `token` / `auth` cookie |
-| API token (`API: true`) | No CSRF, no 2FA |
-| Site session | `X-CSRF-Token` on POST, plus `X-TwoFA` on POST routes marked 2FA |
+| API token (`API: true`) | No CSRF |
+| Site session | `X-CSRF-Token` on POST |
 | Body | JSON or `application/x-www-form-urlencoded` |
 | Trade URL | Must already be saved on the Mannco account, for both buyer and seller. Otherwise you get `missing trade url` |
 | Balance | The account's Mannco balance. A purchase debits it immediately |

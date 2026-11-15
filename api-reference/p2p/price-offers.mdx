@@ -14,7 +14,7 @@ A price offer lets you propose a price lower than or equal to a listing's asking
 
 ## Create
 
-`POST /p2p/offers/create`. Requires **2FA**. Buyer.
+`POST /p2p/offers/create`. Buyer.
 
 ```bash
 curl -X POST https://api.mannco.store/p2p/offers/create \
@@ -56,7 +56,7 @@ Response: `{ "total", "page", "limit", "items" }`.
 
 ## Accept
 
-`POST /p2p/offers/accept`. Requires **2FA**. Seller.
+`POST /p2p/offers/accept`. Seller.
 
 ```json
 { "id": 7 }
@@ -66,7 +66,7 @@ Response: `{ "offer", "trade" }`. This follows the same path as a buy: the buyer
 
 ## Decline
 
-`POST /p2p/offers/decline`. Requires **2FA**. Seller. The buyer is notified.
+`POST /p2p/offers/decline`. Seller. The buyer is notified.
 
 ```json
 { "id": 7 }
@@ -74,7 +74,7 @@ Response: `{ "offer", "trade" }`. This follows the same path as a buy: the buyer
 
 ## Remove
 
-`POST /p2p/offers/remove`. Requires **2FA**. Buyer, on their own pending offer.
+`POST /p2p/offers/remove`. Buyer, on their own pending offer.
 
 ```json
 { "id": 7 }
