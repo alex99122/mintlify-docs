@@ -1,0 +1,162 @@
+---
+title: "P2P overview"
+sidebarTitle: "Overview"
+description: "How the peer-to-peer market works, the browser extension it requires, request conventions, and common errors"
+---
+
+The P2P market is peer-to-peer. The item stays in the seller's Steam inventory until the buyer accepts the Steam trade offer. The buyer pays with their Mannco balance. The seller is credited when the protection period ends.
+
+| | |
+|---|---|
+| Base URL | `https://api.mannco.store` |
+| Amounts | Integer **cents** |
+| Timestamps | Unix **seconds** |
+| Games | `440` (TF2), `730` (CS2), `570` (Dota 2), `252490` (Rust) |
+| Fee | **5%**, taken from the seller |
+
+## The extension is required
+
+The API records the listing, the purchase, the price offer, and the trade status. **The official Mannco.Store Market extension sends the Steam offer.** It runs in the browser where the seller is logged into Steam.
+
+Without that extension running and signed in:
+
+- Listing an item is rejected with `extension offline`.
+- Listings leave the public catalog. After 12 hours offline they pause, and come back when the extension runs again.
+- A purchase stays waiting, then expires after 12 hours and the buyer is refunded.
+
+Install the extension and leave it running **on the seller's side**, in one browser:
+
+<Steps>
+  <Step title="Sign in on Mannco.store">
+    Sign in on [mannco.store](https://mannco.store) with the account that sells.
+  </Step>
+  <Step title="Sign in on Steam">
+    Sign in on Steam with the account that owns the items.
+  </Step>
+  <Step title="Install Mannco.Store Market">
+    <Tabs>
+      <Tab title="Chrome">
+        Install [Mannco.Store Market](https://chromewebstore.google.com/detail/ipnooehcdjnapigmnlcioflmhhkmpclo) from the Chrome Web Store, then click **Add to Chrome**.
+      </Tab>
+      <Tab title="Firefox">
+        Open the extension popup and allow Steam cookies.
+      </Tab>
+    </Tabs>
+  </Step>
+  <Step title="Confirm sales in Steam">
+    Confirm Steam Guard in Steam when a sale goes out. The extension popup lists offers that are still waiting.
+  </Step>
+</Steps>
+
+<Note>
+  The extension uses the browser's Steam session. Steam cookies are never sent to the API. The `/p2p/extension/*` routes belong to the extension: calling them yourself does not replace installing it.
+</Note>
+
+## Before you call
+
+| | |
+|---|---|
+| Auth | `Authorization: Bearer <jwt>`, or the `token` / `auth` cookie |
+| API token (`API: true`) | No CSRF, no 2FA |
+| Site session | `X-CSRF-Token` on POST, plus `X-TwoFA` on POST routes marked 2FA |
+| Body | JSON or `application/x-www-form-urlencoded` |
+| Trade URL | Must already be saved on the Mannco account, for both buyer and seller. Otherwise you get `missing trade url` |
+| Balance | The account's Mannco balance. A purchase debits it immediately |
+
+### Response envelope
+
+Success:
+
+```json
+{ "err": false, "success": true, "content": { } }
+```
+
+Errors return HTTP **300**:
+
+```json
+{ "err": true, "success": false, "content": { "message": "extension offline" } }
+```
+
+There are no machine-readable error codes. Match on or display `content.message`.
+
+```javascript p2p.js
+async function p2p(path, { method = "GET", body } = {}) {
+  const res = await fetch(`https://api.mannco.store${path}`, {
+    method,
+    headers: {
+      Authorization: `Bearer ${process.env.MANNCO_JWT}`,
+      "Content-Type": "application/json",
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const json = await res.json();
+  if (json.err || res.status === 300) {
+    throw new Error(json.content?.message ?? `HTTP ${res.status}`);
+  }
+  return json.content;
+}
+
+try {
+  const inv = await p2p("/p2p/inventory/440");
+  console.log(inv.can_list ? "Ready to list" : "Start the extension first");
+} catch (e) {
+  console.error("P2P call failed:", e.message);
+}
+```
+
+### Pagination
+
+Lists take `page` (starts at 1) and `limit` (default 50, maximum 100). Buy order lists default to 10.
+
+### Listing keys
+
+`listing_key` is the key returned by the inventory or the catalog. On [`POST /p2p/list`](/api-reference/p2p/selling#list), the same value is also accepted as `depositkey`. Send it back unchanged. An invented key is rejected with `invalid listing key`.
+
+### Fee
+
+The fee is **5%**. Trades and offers include `seller_receives_cents` and `fee_cents`. On a 1¢ item, the seller keeps 1¢.
+
+### Privacy
+
+The public catalog does not include the seller's SteamID. The Steam offer goes to the trade URL already saved on the account.
+
+## Common errors
+
+| `message` | What to do |
+|---|---|
+| `extension offline` | Open the extension, signed in on the site and on Steam |
+| `seller offline` | The seller's extension is closed: the listing can no longer be bought |
+| `missing trade url` / `seller missing trade url` | Save the Steam trade URL on the account |
+| `invalid listing key` | Send back the key from the inventory or the catalog |
+| `invalid price` | `price_cents` must be an integer of at least 1 |
+| `already listed` / `listing paused` | The item is already listed, or paused: open the extension again |
+| `listing limit reached` | You have 500 active listings |
+| `listing not found` | The listing is no longer for sale |
+| `listing reserved` | A sale is already in progress, so it cannot be unlisted |
+| `cannot buy own listing` / `cannot offer on own listing` | This is your own listing |
+| `insufficient balance` / `Not enough balance` | Add Mannco balance |
+| `item not found in steam inventory` / `item no longer in seller inventory` | The item left the Steam inventory |
+| `price must be lower than or equal to current price` | The offer is above the listed price |
+| `too many active offers` | You already have 10 pending offers |
+| `offer already exists` | A pending offer already exists on this listing |
+| `You already have buy order on this item please remove them in your profile page!` | Update the existing order |
+| `There is already an item on sale at this price or cheaper, please buy it directly!` | Buy the listing instead of bidding |
+| `cancel not yet allowed` | Wait until `cancel_after` (30 minutes) |
+| `already disputed` | A dispute already exists |
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Selling" icon="tag" href="/api-reference/p2p/selling">
+    Read your inventory, list, reprice, and unlist items.
+  </Card>
+  <Card title="Price offers" icon="hand-holding-dollar" href="/api-reference/p2p/price-offers">
+    Offer below the asking price, or answer offers on your listings.
+  </Card>
+  <Card title="Buy orders" icon="list-check" href="/api-reference/p2p/buy-orders">
+    Bid on an item type and fill automatically.
+  </Card>
+  <Card title="Trades" icon="arrows-rotate" href="/api-reference/p2p/trades">
+    Follow a trade, the protection window, and cancellation.
+  </Card>
+</CardGroup>

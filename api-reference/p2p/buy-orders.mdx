@@ -1,0 +1,102 @@
+---
+title: "P2P buy orders"
+sidebarTitle: "Buy orders"
+description: "Bid on a P2P item type, read the public order book, and manage your buy orders"
+---
+
+A buy order sets a price on an item type (`item_id`), not on one listing. It fills automatically when a matching item comes up for sale.
+
+| | |
+|---|---|
+| Orders per item | One live order |
+| Quantity | 1 to 5000 |
+| Balance check | Must cover `price × quantity` to place the order |
+| Debit per fill | The **listing price**, not your bid |
+| Bid | Must be **strictly below** the lowest price already for sale |
+
+If your bid is at or above the lowest listing, the response tells you to buy that listing directly.
+
+The order fills when a seller whose extension is running lists an item, or drops a price, at your bid or below. You get a notification and a `pending` [trade](/api-reference/p2p/trades), the same as a buy.
+
+<Note>
+  If your balance falls below `price × quantity`, the order leaves the book until your balance is high enough again.
+</Note>
+
+## Public book
+
+`GET /p2p/buyorder/list/{item}`. `{item}` is the catalog id or the slug.
+
+```bash
+curl https://api.mannco.store/p2p/buyorder/list/1761 \
+  -H "Authorization: Bearer $MANNCO_JWT"
+```
+
+```json Response
+{
+  "err": false,
+  "success": true,
+  "content": {
+    "informations": {
+      "0": { "count": 3, "price": 150 },
+      "1": { "count": 8, "price": 140 },
+      "more": { "count": 20, "price": 100 }
+    }
+  }
+}
+```
+
+The book shows five price levels, then `more` for the rest. `price` is in cents. With no orders, `informations` is `{}`.
+
+## My order on an item
+
+`GET /p2p/buyorder/{item}`. `informations` is your order, or `null`.
+
+## Create
+
+`POST /p2p/buyorder`. Requires **2FA**.
+
+```bash
+curl -X POST https://api.mannco.store/p2p/buyorder \
+  -H "Authorization: Bearer $MANNCO_JWT" \
+  -H "Content-Type: application/json" \
+  -d '{ "itemid": 12, "value": 140, "amount": 2 }'
+```
+
+| Field | Aliases | Description |
+|---|---|---|
+| `itemid` | `item_id`, `item` | Catalog item id |
+| `value` | `price_cents`, `price` | Bid per item, in cents |
+| `amount` | | Quantity, 1 to 5000 |
+
+Response: `{ "details": "Inserted", "buyorder": { } }`.
+
+## Update
+
+`POST /p2p/buyorder/update`. Requires **2FA**. Same body as create.
+
+Response: `{ "details": "Buy order updated", "buyorder": { } }`.
+
+## Remove
+
+`POST /p2p/buyorder/remove`. Requires **2FA**.
+
+```json
+{ "itemid": 12 }
+```
+
+Response: `{ "details": "Removed" }`.
+
+## My orders
+
+`GET /p2p/buyorders` lists all your buy orders.
+
+```bash
+curl "https://api.mannco.store/p2p/buyorders?page=1&limit=10&search=key&undercut=1" \
+  -H "Authorization: Bearer $MANNCO_JWT"
+```
+
+| Field or parameter | Description |
+|---|---|
+| `highest_price` | Best live bid on that item |
+| `undercut=1` | Keeps only orders where someone is bidding higher |
+| `broke: true` | The order is paused for lack of balance |

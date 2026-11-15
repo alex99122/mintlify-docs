@@ -1,0 +1,89 @@
+---
+title: "P2P price offers"
+sidebarTitle: "Price offers"
+description: "Offer a price at or below a P2P listing, and accept, decline, or remove offers"
+---
+
+A price offer lets you propose a price lower than or equal to a listing's asking price. Your balance is checked but **not debited**. The debit happens when the seller accepts.
+
+| | |
+|---|---|
+| Lifetime | **24 hours** |
+| Pending offers | At most **10**, and only one per listing |
+| Price | From 1 up to the listing price, in cents |
+
+## Create
+
+`POST /p2p/offers/create`. Requires **2FA**. Buyer.
+
+```bash
+curl -X POST https://api.mannco.store/p2p/offers/create \
+  -H "Authorization: Bearer $MANNCO_JWT" \
+  -H "Content-Type: application/json" \
+  -d '{ "listing_id": 42, "listing_key": "a1b2c3d4e5f6", "price_cents": 120 }'
+```
+
+Send the `listing_key` from the catalog unchanged. Response: `{ "offer": { } }`. The seller gets a notification.
+
+## List offers
+
+```bash
+# Offers on your listings
+curl "https://api.mannco.store/p2p/offers/received?status=0" \
+  -H "Authorization: Bearer $MANNCO_JWT"
+
+# Offers you sent, pending only
+curl "https://api.mannco.store/p2p/offers/my?active=1" \
+  -H "Authorization: Bearer $MANNCO_JWT"
+```
+
+- `received` returns offers on your listings.
+- `my` returns offers you sent. `active=1` keeps pending offers only.
+
+Response: `{ "total", "page", "limit", "items" }`.
+
+### Offer statuses
+
+| `status` | `status_name` | Meaning |
+|---|---|---|
+| `0` | `pending` | Waiting for the seller |
+| `1` | `accepted` | Accepted. `trade_id` is set |
+| `2` | `declined` | Declined by the seller |
+| `3` | `removed` | Removed by the buyer |
+| `-1` | `insufficient_balance` | Not enough balance when the seller accepted |
+| `-2` | `expired` | Older than 24 hours |
+| `-3` | `void` | The listing was sold, unlisted, or its price dropped to the offer |
+
+## Accept
+
+`POST /p2p/offers/accept`. Requires **2FA**. Seller.
+
+```json
+{ "id": 7 }
+```
+
+Response: `{ "offer", "trade" }`. This follows the same path as a buy: the buyer is debited, the extension sends the Steam offer, and you have 12 hours to send it. See [Trades](/api-reference/p2p/trades).
+
+## Decline
+
+`POST /p2p/offers/decline`. Requires **2FA**. Seller. The buyer is notified.
+
+```json
+{ "id": 7 }
+```
+
+## Remove
+
+`POST /p2p/offers/remove`. Requires **2FA**. Buyer, on their own pending offer.
+
+```json
+{ "id": 7 }
+```
+
+## Mark as read
+
+`POST /p2p/offers/read`. Seller.
+
+```json
+{ "id": 7 }
+```

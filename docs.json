@@ -189,6 +189,22 @@
         ]
       },
       {
+        "tab": "P2P",
+        "icon": "handshake",
+        "groups": [
+          {
+            "group": "P2P market",
+            "pages": [
+              "api-reference/p2p/overview",
+              "api-reference/p2p/selling",
+              "api-reference/p2p/price-offers",
+              "api-reference/p2p/buy-orders",
+              "api-reference/p2p/trades"
+            ]
+          }
+        ]
+      },
+      {
         "tab": "User Account",
         "icon": "user",
         "openapi": "openapi.json",

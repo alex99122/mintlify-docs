@@ -1,0 +1,154 @@
+---
+title: "P2P selling"
+sidebarTitle: "Selling"
+description: "Read your listable Steam inventory, list items, change prices, unlist, and read your listings and price history"
+---
+
+To sell on P2P, you read your Steam inventory, list items with the key it returns, and keep the [extension](/api-reference/p2p/overview#the-extension-is-required) running so it can send the Steam offer when an item sells.
+
+<Warning>
+  Every route on this page needs the seller's extension running. Without it, listing fails with `extension offline` and existing listings leave the catalog.
+</Warning>
+
+## Inventory
+
+`GET /p2p/inventory/{game}` returns the Steam items you can list. Items already listed, reserved, or paused are left out.
+
+```bash
+curl https://api.mannco.store/p2p/inventory/440 \
+  -H "Authorization: Bearer $MANNCO_JWT"
+```
+
+```json Response
+{
+  "err": false,
+  "success": true,
+  "content": {
+    "informations": [],
+    "game": 440,
+    "can_list": true,
+    "online": true,
+    "last_heartbeat": 1760000000,
+    "has_trade_url": true,
+    "invalidated": [],
+    "invalidated_count": 0
+  }
+}
+```
+
+Each group in `informations` matches a deposit row: `assetid` values separated by `;`, `depositkey` as `{ "assetId": "key" }`, `item_id`, and `catalog`.
+
+| Field | Description |
+|---|---|
+| `lowest_sale_price` | Lowest P2P asking price for this item, in cents. `0` if none |
+| `lowest_buy_order` | Best P2P buy order, in cents. `0` if none |
+| `can_list` | `true` only when the extension is running and a trade URL is saved |
+| `online` | This account's extension is running |
+| `last_heartbeat` | Last time the extension checked in (unix seconds) |
+| `has_trade_url` | A trade URL is saved on the account |
+| `invalidated` | Listings removed because the item left the Steam inventory. Read [`GET /p2p/listings/mine`](#my-listings) again |
+
+## List
+
+`POST /p2p/list` lists one asset. Requires **2FA**.
+
+```bash
+curl -X POST https://api.mannco.store/p2p/list \
+  -H "Authorization: Bearer $MANNCO_JWT" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "game": 440,
+    "asset_id": "1234567890",
+    "listing_key": "a1b2c3d4e5f6",
+    "price_cents": 150
+  }'
+```
+
+| Field | Description |
+|---|---|
+| `game` | Game id |
+| `asset_id` | Steam assetId from the inventory |
+| `listing_key` | The `depositkey` value for this asset. `depositkey` is accepted as an alias |
+| `price_cents` | Asking price, integer of at least 1 |
+
+Response: `{ "listing": { }, "sold": false }`.
+
+<Note>
+  `sold: true` plus a `trade` object means a buy order already covered your price. The item is sold, the buyer's balance is debited, and the extension must send the Steam offer.
+</Note>
+
+You can have at most **500** active listings.
+
+## Unlist
+
+`POST /p2p/unlist` removes a listing. Requires **2FA**.
+
+```json
+{ "listing_id": 42 }
+```
+
+Allowed while the listing is for sale or paused. Rejected with `listing reserved` once a sale is in progress.
+
+## Change the price
+
+`POST /p2p/listing/price` reprices a listing. Requires **2FA**.
+
+```json
+{ "listing_id": 42, "price_cents": 200 }
+```
+
+Works only on a listing that is for sale.
+
+- Dropping the price to a buy order sells the item immediately (`sold: true` + `trade`).
+- Dropping the price to a pending offer's price cancels that offer.
+
+## My listings
+
+`GET /p2p/listings/mine` returns your listings.
+
+```bash
+curl "https://api.mannco.store/p2p/listings/mine?game=440&page=1&limit=50" \
+  -H "Authorization: Bearer $MANNCO_JWT"
+```
+
+```json Response
+{
+  "err": false,
+  "success": true,
+  "content": {
+    "total": 3,
+    "page": 1,
+    "limit": 50,
+    "online": true,
+    "last_heartbeat": 1760000000,
+    "items": []
+  }
+}
+```
+
+Items are grouped like the catalog: `count`, `ids` (listing ids separated by `;`), and `listing_keys`. To unlist or reprice, use **one** `listing_id` from the group.
+
+Filter with `state`, for example `?state=5`. By default the list contains states `0`, `1`, and `5`.
+
+| `state` | Meaning |
+|---|---|
+| `0` | For sale (visible while the extension is running) |
+| `1` | Reserved, sale in progress |
+| `2` | Sold |
+| `3` | Removed by you |
+| `4` | Removed: the item is no longer in your Steam inventory |
+| `5` | Paused (`paused: true`): the extension stayed closed too long. Open it again to put the item back for sale |
+
+## Price history
+
+`GET /item/salesGraph/p2p/{item}` returns P2P sale history. `{item}` is the catalog id or the slug. `period` is required: `1M`, `3M`, `6M`, `1Y`, `5Y`, or `ALL`.
+
+```bash
+curl "https://api.mannco.store/item/salesGraph/p2p/1761?period=6M" \
+  -H "Authorization: Bearer $MANNCO_JWT"
+```
+
+## Next steps
+
+- [Answer price offers](/api-reference/p2p/price-offers) on your listings.
+- [Follow your sales](/api-reference/p2p/trades) until payout.

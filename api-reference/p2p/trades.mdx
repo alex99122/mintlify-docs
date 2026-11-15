@@ -1,0 +1,78 @@
+---
+title: "P2P trades"
+sidebarTitle: "Trades"
+description: "Follow a P2P trade through its statuses, the protection window, payout, and cancellation"
+---
+
+Every P2P purchase, accepted offer, or filled buy order creates a trade. Read it to know when the Steam offer goes out, when the buyer receives the item, and when the seller is paid.
+
+## List trades
+
+`GET /p2p/trades` lists your purchases and your sales.
+
+```bash
+curl "https://api.mannco.store/p2p/trades?page=1&limit=50&status=2" \
+  -H "Authorization: Bearer $MANNCO_JWT"
+```
+
+## Read one trade
+
+`GET /p2p/trade/{id}`. `{id}` is the numeric id or the `display` value (`p2p…`). Only the buyer and the seller of that trade can read it.
+
+| Field | Description |
+|---|---|
+| `status` / `status_name` | See [Trade statuses](#trade-statuses) |
+| `price_cents` | Price paid by the buyer |
+| `seller_receives_cents` | Amount credited to the seller |
+| `fee_cents` | 5% fee |
+| `offer_id` | Steam offer id. Empty until the offer is sent |
+| `expires_at` | Deadline for the seller to send the offer |
+| `release_at` | End of the protection window |
+| `released_at` | When the seller was credited |
+| `catalog` | Catalog details of the item |
+| `dispute` | Dispute details, if any |
+
+## Trade statuses
+
+| `status` | `status_name` | Buyer | Seller |
+|---|---|---|---|
+| `0` | `pending` | Waiting for the Steam offer (12 h) | The extension must send the offer |
+| `1` | `offer_sent` | Accept the offer in Steam | Waiting for the buyer |
+| `2` | `accepted` | Item received, funds held until `release_at` | Payout at `release_at` |
+| `3` | `expired` | Seller was too slow, refunded | Listing is for sale again |
+| `4` | `buyer_cancelled` | You cancelled, refunded | Listing is for sale again |
+| `5` | `failed` | Steam offer failed, refunded | Listing is for sale again |
+| `6` | `seller_canceled` | The seller cancelled the Steam offer, refunded | Steam offer cancelled |
+| `7` | `buyer_declined` | You declined the Steam offer, refunded | The buyer declined |
+| `8` | `reverted` | Dispute decided for you, refunded | Sale reversed |
+| `9` | `released` | Complete | Credited to the Mannco balance |
+
+While the status is `pending`, `offer_sent`, or `accepted`, keep reading the trade. All other statuses are final.
+
+## Protection window
+
+The window starts when the buyer accepts the Steam offer and ends at `release_at`.
+
+| Game | Window |
+|---|---|
+| TF2 `440`, Rust `252490` | 7 days |
+| CS2 `730`, Dota 2 `570` | 9 days |
+
+With no dispute, the seller is credited automatically at `release_at`. That money cannot be withdrawn before the status is `released`.
+
+## Cancel
+
+`POST /p2p/trade/{id}/cancel`. Requires **2FA**.
+
+Only the buyer can cancel, only while the Steam offer has not been sent (`pending`), and only **30 minutes** after the purchase. The buyer is refunded and the listing goes back for sale.
+
+```bash
+curl -X POST https://api.mannco.store/p2p/trade/p2p12345/cancel \
+  -H "Authorization: Bearer $MANNCO_JWT"
+```
+
+Too early, you get `cancel not yet allowed` and `cancel_after`, the unix time from which you can cancel.
+
+<Note>
+  Declining or cancelling the offer **in Steam** sets the trade to `buyer_declined` or `seller_canceled`, with the same refund.
+</Note>
