@@ -2633,6 +2633,14 @@
                       "type": "string"
                     }
                   },
+                  "costs": {
+                    "type": "object",
+                    "description": "Optional. Map assetId string to what you paid for the item, in cents (`>= 0`). Same shape as `prices`. Also accepted as `cost`. Costs are stored separately and do not change the listing price. They are used to compute `costCents` and `profitCents` in GET /user/getSalesHistory.",
+                    "additionalProperties": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
                   "game": {
                     "type": "integer",
                     "description": "Default 440. One of 440, 730, 570, 252490, 753",
@@ -2648,6 +2656,10 @@
                 "depositKeys": {
                   "123456789": "...",
                   "987654321": "..."
+                },
+                "costs": {
+                  "123456789": 12000,
+                  "987654321": 6500
                 },
                 "game": 440
               }
@@ -4009,7 +4021,7 @@
           "User Account"
         ],
         "summary": "Sales history",
-        "description": "Paginated sales records. An admin variant GET /user/getSalesHistory/{userid} (Connected + admin) returns another user's history.\n\n**Permission:** Connected + API.",
+        "description": "Paginated sales records. An admin variant GET /user/getSalesHistory/{userid} (Connected + admin) returns another user's history.\n\nEach row in `content.values` includes profit fields, in cents, summed across the items in the sale:\n\n- `saleCents`: total sale price\n- `feeCents`: total fees\n- `costCents`: total cost, from the `costs` sent to POST /deposit/trade\n- `profitCents`: total profit\n\nAll four fields are `null` if any item in the row has no profit record or has an unknown cost.\n\n**Permission:** Connected + API.",
         "parameters": [
           {
             "$ref": "#/components/parameters/PageParam"
